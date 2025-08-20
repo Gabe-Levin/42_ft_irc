@@ -5,7 +5,7 @@ CXXFLAGS = -Wall -Wextra -Werror -std=c++98
 all: $(NAME)
 
 $(NAME): main.cpp
-	$(CXX) $(CXXFLAGS) -o $(NAME) main.cpp
+	$(CXX) $(CXXFLAGS) -o $(NAME) main.cpp Client.cpp Server.cpp
 
 clean:
 	@true

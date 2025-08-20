@@ -5,16 +5,47 @@
 #include <cerrno>
 #include <cstring>
 #include <unistd.h>
+#include <sstream>
 #include <sys/socket.h>
+#include <fcntl.h>
+#include <netdb.h>
 
-struct Client
+#include "Client.hpp"
+#include "Server.hpp"
+
+void handle_cmd(Client &c, const std::string &line, const std::string &server_pass)
 {
-    int fd;
-    std::string inbuf;
-    std::string outbuf;
-    Client(): fd(-1){};
-    Client(int f): fd(f) {};
-};
+    std::istringstream iss(line);
+    std::string cmd;
+
+    iss >> cmd; //set the first word in the iss stream to cmd
+
+    if(cmd == "PASS")
+    {
+        std::string pass;
+        iss >> pass;
+        if(pass == server_pass)
+        {
+            c.auth = true;
+            return;
+        }
+        else
+        {
+            c.outbuf += "Wrong password. Reseting buffer.\r\n";
+            c.toDisconnect = true;
+            return;
+        }
+        
+    }
+    else if(cmd == "NICK")
+    {
+        iss >> c.nick;
+    }
+    else if (cmd == "USER")
+    {
+        iss >> c.user;
+    }
+}
 
 int main(int argc, char** argv)
 {
@@ -24,9 +55,9 @@ int main(int argc, char** argv)
         return 1;
     }
 
-    const char* port = argv[1];
+    Server srv(argv[1], argv[2]);
 
-    int listenfd = create_listen_socket(port);
+    int listenfd = Server::create_listen_socket(srv.port);
     if(listenfd < 0) return 1;
 
     std::vector<struct pollfd> pfds;
@@ -36,12 +67,12 @@ int main(int argc, char** argv)
 
     std::map<int, Client> clients;
     
-    std::cout << "Echo server listening on port " << port << " ...\n";
+    std::cout << "Echo server listening on port " << srv.port << " ...\n";
 
     while(true)
     {
         // Update events based on the outbuf
-        for(int i = 0; i < pfds.size(); ++i)
+        for(size_t i = 0; i < pfds.size(); ++i)
         {
             int fd = pfds[i].fd;
             std::map<int, Client>::iterator it;
@@ -64,43 +95,11 @@ int main(int argc, char** argv)
         }
 
         // Accept new clients
-        if(pfds[0].revents & POLLIN)
-        {
-            while(true)
-            {
-                struct sockaddr_storage ss;
-                socklen_t slen = sizeof(ss);
-                int cfd = accept(listenfd, (struct sockaddr*)&ss, &slen);
-                if(cfd < 0)
-                {
-                    if(errno == EAGAIN || errno == EWOULDBLOCK) break;
-                    std::cerr << "accept error: " << std::strerror(errno) << std::endl;
-                    break;
-                }
-                if(set_nonblocking(cfd) < 0)
-                {
-                    std::cerr << "fcntl nonblock (client) failed\n";
-                    close(cfd);
-                    continue;
-                }
-
-                Client cli(cfd);
-                clients[cfd] = cli;
-
-                struct pollfd p;
-                std::memset(&p, 0, sizeof(p));
-                p.fd = cfd;
-                p.events = POLLIN;
-                pfds.push_back(p);
-
-                // Greeting
-                clients[cfd].outbuf += ":echo 001 * :Welcome to the tiny echo server\r\n";
-            }
-        }
+        Client::accept_new(pfds, clients, listenfd);
 
         // 2) IO for clients
 
-        for(int i = 0; i < pfds.size();)
+        for(size_t i = 0; i < pfds.size();)
         {
             int fd = pfds[i].fd;
             std::map<int, Client>::iterator it = clients.find(fd);
@@ -109,10 +108,76 @@ int main(int argc, char** argv)
                 i++;
                 continue;
             }
+
+            bool erased = false;
+
+            if (pfds[i].revents & POLLIN)
+            {
+                char buf[512];
+                while(true)
+                {
+                    int n = recv(fd, buf, sizeof(buf), 0);
+                    if(n > 0)
+                    {
+                        it->second.inbuf.append(buf, n);
+                        std::string line;
+                        while(Client::pop_line(it->second.inbuf, line))
+                        {
+                            handle_cmd(it->second, line, srv.password);
+                            // std::string reply = ":echo NOTICE * :" + line + "\r\n";
+                            // it->second.outbuf += reply;
+                        }
+                    }
+                    else if (n == 0)
+                    {
+                        // Peer closed. ie. nothing to read
+                        Client::close_client(pfds, clients, i);
+                        erased = true;
+                        break;
+                    }
+                    else
+                    {
+                        if (errno == EAGAIN || errno == EWOULDBLOCK) break;
+                        // Real error
+                        Client::close_client(pfds, clients, i);
+                        erased = true;
+                        break;
+                    }
+                }
+            }
+            if (erased) continue;
+
+            // Writeable?
+            if((pfds[i].revents & POLLOUT) && !it->second.outbuf.empty())
+            {
+                const char* data = it->second.outbuf.data();
+                size_t leftover = it->second.outbuf.size();
+                int n = send(fd, data, leftover, 0);
+                if (n > 0)
+                {
+                    it -> second.outbuf.erase(0, n);
+
+                    // Close client if outbuf is empty and toDisconnect is true
+                    if (it->second.outbuf.empty() && it->second.toDisconnect)
+                    {
+                        Client::close_client(pfds, clients, i);
+                        erased = true;
+                    }
+                }
+                else if (n < 0)
+                {
+                    if(!(errno == EAGAIN || errno == EWOULDBLOCK)) 
+                    {
+                        Client::close_client(pfds, clients ,i);
+                        erased = true;
+                    }
+                }
+            }
+            if (!erased) ++i;
         }
-
-
-
+        // Server::disconnect_sockets(clients, pfds);
     }
 
+    close(listenfd);
+    return 0;
 }
