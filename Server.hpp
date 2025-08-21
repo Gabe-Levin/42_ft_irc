@@ -12,11 +12,13 @@
 #include <netdb.h>
 
 #include "Client.hpp"
+#include "Channel.hpp"
 
 struct Server
 {
     const char* port;
     const char* password;
+    std::vector<struct Channel> channels;
 
     Server();
     Server(const char *port, const char* password);

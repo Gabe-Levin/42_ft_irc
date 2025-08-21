@@ -38,8 +38,8 @@ int Server::create_listen_socket(const char* port)
         if (fd < 0) continue;
 
         // Rebind quickly after restarts
-        // int yes = 1;
-        // setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes));
+        int yes = 1;
+        setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes));
 
         if (bind(fd, rp->ai_addr, rp->ai_addrlen) == 0)
         {

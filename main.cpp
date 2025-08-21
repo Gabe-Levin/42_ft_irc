@@ -12,40 +12,7 @@
 
 #include "Client.hpp"
 #include "Server.hpp"
-
-void handle_cmd(Client &c, const std::string &line, const std::string &server_pass)
-{
-    std::istringstream iss(line);
-    std::string cmd;
-
-    iss >> cmd; //set the first word in the iss stream to cmd
-
-    if(cmd == "PASS")
-    {
-        std::string pass;
-        iss >> pass;
-        if(pass == server_pass)
-        {
-            c.auth = true;
-            return;
-        }
-        else
-        {
-            c.outbuf += "Wrong password. Reseting buffer.\r\n";
-            c.toDisconnect = true;
-            return;
-        }
-        
-    }
-    else if(cmd == "NICK")
-    {
-        iss >> c.nick;
-    }
-    else if (cmd == "USER")
-    {
-        iss >> c.user;
-    }
-}
+#include "Channel.hpp"
 
 int main(int argc, char** argv)
 {
@@ -56,7 +23,9 @@ int main(int argc, char** argv)
     }
 
     Server srv(argv[1], argv[2]);
+    std::map<int, Client> clients;
 
+    // Setup listen socket
     int listenfd = Server::create_listen_socket(srv.port);
     if(listenfd < 0) return 1;
 
@@ -65,13 +34,12 @@ int main(int argc, char** argv)
     pfds[0].fd = listenfd;
     pfds[0].events = POLLIN;
 
-    std::map<int, Client> clients;
-    
-    std::cout << "Echo server listening on port " << srv.port << " ...\n";
+    std::cout << "IRC server listening on port " << srv.port << " ...\n";
 
+    // Main server loop
     while(true)
     {
-        // Update events based on the outbuf
+        // Define the poll policy
         for(size_t i = 0; i < pfds.size(); ++i)
         {
             int fd = pfds[i].fd;
@@ -80,9 +48,9 @@ int main(int argc, char** argv)
 
             if(it != clients.end())
             {
-                pfds[i].events = POLLIN;
+                pfds[i].events = POLLIN; // always read
                 if(!it->second.outbuf.empty())
-                    pfds[i].events |= POLLOUT;
+                    pfds[i].events |= POLLOUT; // write only if msg pending
             }
         }
 
@@ -97,8 +65,7 @@ int main(int argc, char** argv)
         // Accept new clients
         Client::accept_new(pfds, clients, listenfd);
 
-        // 2) IO for clients
-
+        // IO for clients
         for(size_t i = 0; i < pfds.size();)
         {
             int fd = pfds[i].fd;
@@ -111,6 +78,7 @@ int main(int argc, char** argv)
 
             bool erased = false;
 
+            // Handle new message from client
             if (pfds[i].revents & POLLIN)
             {
                 char buf[512];
@@ -123,9 +91,7 @@ int main(int argc, char** argv)
                         std::string line;
                         while(Client::pop_line(it->second.inbuf, line))
                         {
-                            handle_cmd(it->second, line, srv.password);
-                            // std::string reply = ":echo NOTICE * :" + line + "\r\n";
-                            // it->second.outbuf += reply;
+                            Client::handle_cmd(it->second, line, srv);
                         }
                     }
                     else if (n == 0)
@@ -147,7 +113,7 @@ int main(int argc, char** argv)
             }
             if (erased) continue;
 
-            // Writeable?
+            // Handle sending messages to clients
             if((pfds[i].revents & POLLOUT) && !it->second.outbuf.empty())
             {
                 const char* data = it->second.outbuf.data();
@@ -157,7 +123,7 @@ int main(int argc, char** argv)
                 {
                     it -> second.outbuf.erase(0, n);
 
-                    // Close client if outbuf is empty and toDisconnect is true
+                    // Close client check
                     if (it->second.outbuf.empty() && it->second.toDisconnect)
                     {
                         Client::close_client(pfds, clients, i);
@@ -175,7 +141,6 @@ int main(int argc, char** argv)
             }
             if (!erased) ++i;
         }
-        // Server::disconnect_sockets(clients, pfds);
     }
 
     close(listenfd);
