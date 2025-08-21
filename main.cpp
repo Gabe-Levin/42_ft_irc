@@ -26,7 +26,7 @@ int main(int argc, char** argv)
     std::map<int, Client> clients;
 
     // Setup listen socket
-    int listenfd = Server::create_listen_socket(srv.port);
+    int listenfd = Server::create_listen_socket(srv._port);
     if(listenfd < 0) return 1;
 
     std::vector<struct pollfd> pfds;
@@ -34,7 +34,7 @@ int main(int argc, char** argv)
     pfds[0].fd = listenfd;
     pfds[0].events = POLLIN;
 
-    std::cout << "IRC server listening on port " << srv.port << " ...\n";
+    std::cout << "IRC server listening on port " << srv._port << " ...\n";
 
     // Main server loop
     while(true)
@@ -63,7 +63,7 @@ int main(int argc, char** argv)
         }
 
         // Accept new clients
-        Client::accept_new(pfds, clients, listenfd);
+        Client::accept_new(pfds, clients, srv, listenfd);
 
         // IO for clients
         for(size_t i = 0; i < pfds.size();)

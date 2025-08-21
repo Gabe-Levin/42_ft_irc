@@ -16,15 +16,15 @@
 
 struct Server
 {
-    const char* port;
-    const char* password;
+    const char* _port;
+    const char* _password;
     std::vector<struct Channel> channels;
+    std::vector<Client*> clients;
 
     Server();
     Server(const char *port, const char* password);
     static int set_nonblocking(int fd);
     static int create_listen_socket(const char* port);
 };
-
 
 #endif

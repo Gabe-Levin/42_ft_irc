@@ -26,3 +26,8 @@ Sending a message to #channel1
 ```
 PRIVMSG #channel1 :hello everyone!
 ```
+
+Sending a message to a user
+```
+PRIVMSG Client2 :Servus!
+```

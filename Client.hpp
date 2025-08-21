@@ -26,7 +26,7 @@ struct Client
     Client(int f): fd(f) {};
     static void close_client(std::vector<struct pollfd>& pfds, std::map<int, Client>& clients, size_t idx);
     static bool pop_line(std::string &buffer, std::string &line);
-    static void accept_new(std::vector<struct pollfd> &pfds, std::map<int, Client> &clients, int listenfd);
+    static void accept_new(std::vector<struct pollfd> &pfds, std::map<int, Client> &clients, Server &srv, int listenfd);
     static void handle_cmd(Client &c, const std::string &line, Server &srv);
 };
 

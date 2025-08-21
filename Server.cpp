@@ -3,8 +3,8 @@
 
 Server::Server(const char* port, const char *password)
 {
-    this->port = port;
-    this->password = password;
+    this->_port = port;
+    this->_password = password;
 }
 
 int Server::set_nonblocking(int fd)
