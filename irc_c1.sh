@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 SERVER=${1:-localhost}
-PORT=${2:-6667}
+PORT=${2:-6668}
 NICK=${NICK:-Client1}
 PASS=${PASS:-test}
 USERFIELD=${USERFIELD:-user1}

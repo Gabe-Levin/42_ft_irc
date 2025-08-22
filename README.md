@@ -31,3 +31,8 @@ Sending a message to a user
 ```
 PRIVMSG Client2 :Servus!
 ```
+
+Kick a client out of a channel (must be operator)
+```
+KICK #channel1 Client2
+```

@@ -5,6 +5,7 @@
 void Client::close_client(std::vector<struct pollfd>& pfds, std::map<int, Client>& clients, size_t idx)
 {
     int fd = pfds[idx].fd;
+    std::cout << "Closing client fd: " << fd << std::endl; // Add this debug line
     close(fd);
     clients.erase(fd);
     pfds.erase(pfds.begin() + idx);
@@ -110,12 +111,13 @@ void Client::handle_cmd(Client &c, const std::string &line, Server &srv)
             Channel *existing_channel = Channel::find_channel(channel, srv);
             if (existing_channel == NULL)
             {
-                
                 Channel new_channel(channel);
                 srv.channels.push_back(new_channel);
                 srv.channels.back().clients.push_back(&c);
 
-                c.outbuf += "Congrats, you have just created and joined a new channel '" + channel + "'!\r\n";
+                c.outbuf += "Congrats, you have just created and joined a new channel: '" + channel + "'!\r\n";
+                srv.channels.back().op_list.push_back(&c);
+                c.outbuf += "You are now an operator on '" + channel + "'!\r\n";
             }
             else
             {
@@ -145,9 +147,15 @@ void Client::handle_cmd(Client &c, const std::string &line, Server &srv)
                 return;
             }
 
+            if (!Channel::find_client(c.nick, *existing_channel))
+            {
+                c.outbuf += "You are not member of this channel: " + target + ". \r\n";
+                return;
+            }
+
             for(std::vector<Client*>::iterator it = existing_channel->clients.begin(); it != existing_channel->clients.end(); ++it)
             {
-                if(c.user != (*it)->user) //:Alice!alice@127.0.0.1 PRIVMSG #42network :hello everyone!
+                if(c.nick != (*it)->nick) //:Alice!alice@127.0.0.1 PRIVMSG #42network :hello everyone!
                 {
                     (*it)->outbuf += ":" + c.nick + " " + cmd + " " + target + message + "\r\n";
                 }
@@ -164,7 +172,7 @@ void Client::handle_cmd(Client &c, const std::string &line, Server &srv)
                 }
             }
         }
-
+        return;
     }
 
 }

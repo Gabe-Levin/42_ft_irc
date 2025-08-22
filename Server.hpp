@@ -14,11 +14,14 @@
 #include "Client.hpp"
 #include "Channel.hpp"
 
+struct Channel;
+struct Client;
+
 struct Server
 {
     const char* _port;
     const char* _password;
-    std::vector<struct Channel> channels;
+    std::vector<Channel> channels;
     std::vector<Client*> clients;
 
     Server();
