@@ -1,10 +1,5 @@
 #include "Channel.hpp"
 
-// void Channel::join(Client client)
-// {
-//     clients.push_back(client);
-// }
-
 Channel* Channel::find_channel(std::string channel, Server &srv)
 {
     for(std::vector<Channel>::iterator it = srv.channels.begin(); it != srv.channels.end(); it++)
@@ -15,9 +10,9 @@ Channel* Channel::find_channel(std::string channel, Server &srv)
     return NULL;
 }
 
-Client* Channel::find_operator(std::string nick, Channel &channel)
+Client* Channel::find_operator(std::string nick)
 {
-    for(std::vector<Client*>::iterator it = channel.op_list.begin(); it != channel.op_list.end(); it++)
+    for(std::vector<Client*>::iterator it = op_list.begin(); it != op_list.end(); it++)
     {
         if((*it)->nick == nick)
             return *it;
@@ -25,39 +20,81 @@ Client* Channel::find_operator(std::string nick, Channel &channel)
     return NULL;
 }
 
-bool Channel::kick_client(std::string nick, Channel &channel)
+bool Channel::kick_client(std::string nick)
 {
-    for(std::vector<Client*>::iterator it = channel.clients.begin(); it != channel.clients.end(); ++it)
+    for(std::vector<Client*>::iterator it = clients.begin(); it != clients.end(); ++it)
     {
         if(*it && nick == (*it)->nick)
         {
-            channel.clients.erase(it);
-            Channel::kick_operator(nick, channel);
+            clients.erase(it);
+            kick_operator(nick);
             return true;
         }
     }
     return false;
 }
 
-bool Channel::kick_operator(std::string nick, Channel &channel)
+bool Channel::kick_operator(std::string nick)
 {
-    for(std::vector<Client*>::iterator it = channel.op_list.begin(); it != channel.op_list.end(); ++it)
+    for(std::vector<Client*>::iterator it = op_list.begin(); it != op_list.end(); ++it)
     {
         if(nick == (*it)->nick)
         {
-            channel.op_list.erase(it);
+            op_list.erase(it);
             return true;
         }
     }
     return false;
 }
 
-bool Channel::find_client(std::string nick, Channel &channel)
+bool Channel::is_on_client_list(std::string nick)
 {
-    for(std::vector<Client*>::iterator it = channel.clients.begin(); it != channel.clients.end(); ++it)
+    for(std::vector<Client*>::iterator it = clients.begin(); it != clients.end(); ++it)
     {
         if(nick == (*it)->nick)
         {
+            return true;
+        }
+    }
+    return false;
+}
+
+void Channel::broadcast(std::string msg)
+{
+    for(std::vector<Client*>::iterator it = clients.begin(); it != clients.end(); ++it)
+    {
+        (*it)->outbuf += msg;
+    }
+}
+
+bool Channel::is_on_invite_list(std::string nick)
+{
+    for(std::vector<Client*>::iterator it = invite_list.begin(); it != invite_list.end(); ++it)
+    {
+        if(nick == (*it)->nick)
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool Channel::is_channel_joinable(std::string nick)
+{
+    if(invite_only == true)
+        return is_on_invite_list(nick);
+    return true; 
+
+}
+
+bool Channel::make_operator(std::string nick)
+{
+    for(std::vector<Client*>::iterator it = clients.begin(); it != clients.end(); ++it)
+    {
+        if(nick == (*it)->nick)
+        {
+            if(find_operator(nick) == NULL)
+                op_list.push_back(*it);
             return true;
         }
     }

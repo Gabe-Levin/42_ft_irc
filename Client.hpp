@@ -8,7 +8,10 @@
 #include <unistd.h>
 #include <sys/socket.h>
 #include <sstream>
+#include <string>
+#include <cstdlib> 
 
+#include "Server.hpp"
 struct Server;
 
 struct Client
@@ -28,6 +31,17 @@ struct Client
     static bool pop_line(std::string &buffer, std::string &line);
     static void accept_new(std::vector<struct pollfd> &pfds, std::map<int, Client> &clients, Server &srv, int listenfd);
     static void handle_cmd(Client &c, const std::string &line, Server &srv);
+
+    //Cmds
+    void do_invite(std::istringstream &iss, Server &srv, Client &c);
+    void do_join(std::istringstream &iss, Server &srv, Client &c);
+    void do_kick(std::istringstream &iss, Server &srv, Client &c);
+    void do_mode(std::istringstream &iss, Server &srv, Client &c);
+    void do_nick(std::istringstream &iss, Client &c);
+    void do_pass(std::istringstream &iss, Server &srv, Client &c);
+    void do_topic(std::istringstream &iss, Server &srv, Client &c);
+    void do_privmsg(std::istringstream &iss, Server &srv, Client &c);
+    void do_user(std::istringstream &iss, Client &c);
 };
 
 

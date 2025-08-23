@@ -69,3 +69,13 @@ int Server::create_listen_socket(const char* port)
     }
     return listenfd;
 }
+
+Client* Server::get_client(std::string nick)
+{
+    for(std::vector<Client*>::iterator it = clients.begin(); it != clients.end(); it++)
+    {
+        if((*it)->nick == nick)
+            return *it;
+    }
+    return NULL;
+}

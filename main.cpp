@@ -39,6 +39,7 @@ int main(int argc, char** argv)
     // Main server loop
     while(true)
     {
+        // TODO: move client creation methods into server struct
         // Define the poll policy
         for(size_t i = 0; i < pfds.size(); ++i)
         {
