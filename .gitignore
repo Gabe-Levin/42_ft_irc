@@ -1,0 +1,10 @@
+# Object files
+*.o
+*.obj
+
+# Object directory
+obj/
+obj/*
+
+# Executable
+ircserv

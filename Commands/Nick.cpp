@@ -1,4 +1,6 @@
 #include "../Client.hpp"
+#include "../Messages.hpp"
+
 
 /*
 The NICK command is used to give the client a nickname or change the previous one.
@@ -24,9 +26,9 @@ nickname. In these cases, the <source> of the message will be the old nickname
 [ [ "!" user ] "@" host ] of the user who is changing their nickname.
 
 ERROR                         | STATUS/DONE | DESCRIPTION
-ERR_NONICKNAMEGIVEN (431)     | NO          | No nickname given
-ERR_ERRONEUSNICKNAME (432)    | NO          | Invalid nickname (illegal characters / too long / bad prefix)
-ERR_NICKNAMEINUSE (433)       | NO          | Nickname already in use
+ERR_NONICKNAMEGIVEN (431)     | YES          | No nickname given
+ERR_ERRONEUSNICKNAME (432)    | YES          | Invalid nickname (illegal characters / too long / bad prefix)
+ERR_NICKNAMEINUSE (433)       | YES          | Nickname already in use
 
 
 Berni(28.08.): Maybe we need a solution for this one:
@@ -34,7 +36,70 @@ Berni(28.08.): Maybe we need a solution for this one:
 Command Example:
   NICK Wiz                  ; Requesting the new nick "Wiz".*/
 
-void Client::do_nick(std::istringstream &iss, Client &c)
+
+bool isValidChar(char c)
 {
-    iss >> c.nick;
+    if ((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z'))
+      return true;
+
+    if (c == '[' || c == ']' || c == '\\' || c == '^' || 
+        c == '_' || c == '{' || c == '|' || c == '}')
+      return true;
+
+    if ((c >= '0' && c <= '9') || c == '-')
+      return true;
+
+    return false;
+}
+
+bool isValidFirstChar(char c) {
+    if ((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z')) {
+        return true;
+    }
+    if (c == '[' || c == ']' || c == '\\' || c == '^' || 
+        c == '_' || c == '{' || c == '|' || c == '}') {
+        return true;
+    }
+    return false;
+}
+
+bool isValidNick(std::string nick)
+{
+  if(nick.length() > 9)
+    return false;
+
+  if(!isValidFirstChar(nick[0]))
+    return false;
+
+  for(size_t i = 1; i < nick.length(); i++)
+  {
+    if(!isValidChar(nick[i]))
+      return false;
+  }
+
+  return true;
+}
+
+void Client::do_nick(std::istringstream &iss, Server &srv, Client &c)
+{
+    std::string nick;
+    iss >> nick;
+    if(nick.empty())
+    {
+      Msg::ERR_NONICKNAMEGIVEN(srv, c);
+      return;
+    }
+    else if (!isValidNick(nick))
+    {
+      Msg::ERR_ERRONEUSNICKNAME(srv, c, nick);
+      return;
+    }
+    else if (srv.is_nick_taken(nick))
+    {
+      Msg::ERR_NICKNAMEINUSE(srv, c, nick);
+      return;
+    }
+    
+    c.nick = nick;
+    return;
 }

@@ -1,11 +1,12 @@
 #include "../Client.hpp"
+#include "../Messages.hpp"
 
 /*
     https://modern.ircdocs.horse/#pass-message
 ERROR                         | STATUS/DONE | DESCRIPTION
-ERR_NEEDMOREPARAMS (461)      | NO          | PASS without password
-ERR_ALREADYREGISTERED (462)   | NO          | PASS after registration already completed
-ERR_PASSWDMISMATCH (464)      | NO          | Wrong password (disconnect after sending error)
+ERR_NEEDMOREPARAMS (461)      | YES          | PASS without password
+ERR_ALREADYREGISTERED (462)   | YES          | PASS after registration already completed
+ERR_PASSWDMISMATCH (464)      | YES          | Wrong password (disconnect after sending error)
 
 */
 
@@ -13,15 +14,22 @@ void Client::do_pass(std::istringstream &iss, Server &srv, Client &c)
 {
     std::string pass;
     iss >> pass;
-    if(pass == srv._password)
+    if(c.registered == true)
+    {
+        Msg::ERR_ALREADYREGISTERED(srv, c);
+    }
+    else if(pass.empty())
+    {
+        Msg::ERR_NEEDMOREPARAMS(srv, c, "PASS");
+    }
+    else if(pass == srv._password)
     {
         c.password = true;
-        return;
     }
     else
     { 
-        c.outbuf += "Wrong password. Reseting buffer.\r\n";
+        Msg::ERR_PASSWDMISMATCH(srv, c);
         c.toDisconnect = true;
-        return;
     }
+    return;
 }

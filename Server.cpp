@@ -5,6 +5,23 @@ Server::Server(const char* port, const char *password)
 {
     this->_port = port;
     this->_password = password;
+    this->_name = get_server_name();
+    this->_created = get_date_str();
+}
+
+std::string Server::get_server_name()
+{
+    char buf[256];
+    if (gethostname(buf, sizeof(buf)) != 0)
+        return "unknown";
+    return std::string(buf);
+}
+
+std::string Server::get_date_str() {
+    time_t now = time(NULL);
+    char buf[128];
+    strftime(buf, sizeof(buf), "%a %b %d %H:%M:%S %Y", localtime(&now));
+    return std::string(buf);
 }
 
 int Server::set_nonblocking(int fd)
@@ -78,4 +95,14 @@ Client* Server::get_client(std::string nick)
             return *it;
     }
     return NULL;
+}
+
+bool Server::is_nick_taken(std::string nick)
+{
+    for(std::vector<Client*>::iterator it = clients.begin(); it != clients.end(); it++)
+    {
+        if((*it)->nick == nick)
+            return true;
+    }
+    return false;
 }

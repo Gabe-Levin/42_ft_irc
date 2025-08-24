@@ -24,6 +24,7 @@ struct Client
     std::string outbuf;
     std::string nick;
     std::string user;
+    std::string realname;
 
     Client(): fd(-1), password(false), registered(false), toDisconnect(false){};
     Client(int f): fd(f) {};
@@ -37,11 +38,11 @@ struct Client
     void do_join(std::istringstream &iss, Server &srv, Client &c);
     void do_kick(std::istringstream &iss, Server &srv, Client &c);
     void do_mode(std::istringstream &iss, Server &srv, Client &c);
-    void do_nick(std::istringstream &iss, Client &c);
+    void do_nick(std::istringstream &iss, Server &srv, Client &c);
     void do_pass(std::istringstream &iss, Server &srv, Client &c);
     void do_topic(std::istringstream &iss, Server &srv, Client &c);
     void do_privmsg(std::istringstream &iss, Server &srv, Client &c);
-    void do_user(std::istringstream &iss, Client &c);
+    void do_user(std::istringstream &iss, Server &srv, Client &c);
 };
 
 
