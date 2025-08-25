@@ -81,12 +81,13 @@ bool Channel::is_on_invite_list(std::string nick)
 
 bool Channel::make_operator(std::string nick)
 {
+    if (find_operator(nick) != NULL)
+        return false;
     for(std::vector<Client*>::iterator it = clients.begin(); it != clients.end(); ++it)
     {
         if(nick == (*it)->nick)
         {
-            if(find_operator(nick) == NULL)
-                op_list.push_back(*it);
+            op_list.push_back(*it);
             return true;
         }
     }

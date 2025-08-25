@@ -26,120 +26,140 @@ ERR_USERSDONTMATCH (502)	=>	no
 
 (CHATTY)
 ERROR                         | STATUS/DONE | DESCRIPTION
-ERR_NOSUCHCHANNEL (403)       | NO          | Channel does not exist
-ERR_NEEDMOREPARAMS (461)      | NO          | Missing arguments for mode (+k, +l, +o/-o)
-ERR_UNKNOWNMODE (472)         | NO          | Unknown channel mode flag
-ERR_CHANOPRIVSNEEDED (482)    | NO          | User is not channel operator
-ERR_USERNOTINCHANNEL (441)    | NO          | Target user for +o/-o not in channel
+ERR_NOSUCHCHANNEL (403)       | YES          | Channel does not exist
+ERR_NEEDMOREPARAMS (461)      | YES          | Missing arguments for mode (+k, +l, +o/-o)
+ERR_UNKNOWNMODE (472)         | YES          | Unknown channel mode flag
+ERR_CHANOPRIVSNEEDED (482)    | YES          | User is not channel operator
+ERR_USERNOTINCHANNEL (441)    | YES          | Target user for +o/-o not in channel
 
 */
 
 void Client::do_mode(std::istringstream &iss, Server &srv, Client &c)
 {
-    std::string channel_name;
+    std::string channel_name, flag;
     iss >> channel_name;
+    iss >> flag;
+
+    if(channel_name.empty() || flag.empty())
+    {
+        Msg::ERR_NEEDMOREPARAMS(srv, c, "MODE");
+        return;
+    }
 
     Channel* channel = Channel::find_channel(channel_name, srv);
     if(channel == NULL)
-    {                
-        c.outbuf += "Could not find reference channel: " + channel_name + "\r\n";
+    {
+        Msg::ERR_NOSUCHCHANNEL(srv, c, channel_name);
         return;
     }
+
+    if(!channel->is_on_client_list(c.nick))
+    {
+        Msg::ERR_USERNOTINCHANNEL(srv, c, *channel, c.nick);
+        return;
+    }
+
     Client * op = (*channel).find_operator(c.nick);
     if(op == NULL)
     {
-        c.outbuf += "Sorry bud, you are not an operator. \r\n";
+        Msg::ERR_CHANOPRIVSNEEDED(srv, c, *channel);
         return;
     }
 
-    std::string flag;
-    std::string msg;
-    iss >> flag;
-
-    if(flag.empty()) {
-        c.outbuf += ":server 461 " + c.nick + " MODE :Not enough parameters\r\n";
-        return;
-    }
-    
-    // TODO: get actual host ip from socket after accept
-    msg = ": " + c.nick + "!" + c.user + "@host" + " MODE " + channel->_name + " " + flag + "\r\n";
+    // Handle flags
     if(flag == "+i") //Make channel invite-only
     {
         channel->invite_only = true;
-        channel->broadcast(msg);
+        Msg::MODE(srv, c, *channel, flag);
     }
     else if(flag == "-i") //Lift invite-only restriction
     {
         channel->invite_only = false;
-        channel->broadcast(msg);
+        Msg::MODE(srv, c, *channel, flag);
+
     }
     else if(flag == "+t")
     {
         channel->topic_restricted = true;
-        channel->broadcast(msg);
+        Msg::MODE(srv, c, *channel, flag);
+
     }
     else if(flag == "-t")
     {
         channel->topic_restricted = false;
-        channel->broadcast(msg);
+        Msg::MODE(srv, c, *channel, flag);
     }
     else if(flag == "+k") //Set channel password
     {
         std::string secretpwd;
         iss >> secretpwd;
         if(secretpwd.empty())
-            c.outbuf += ":server 461 " + c.nick + " MODE :Not enough parameters\r\n";
+        {
+            Msg::ERR_NEEDMOREPARAMS(srv, c, "MODE");
+            return;
+        }
         else
         {
             channel->secretpwd = secretpwd;
-            channel->broadcast(msg);
+            Msg::MODE(srv, c, *channel, flag);
         }
     }
     else if(flag == "-k") //Lift channel password
     {
         channel->secretpwd.erase();
-        channel->broadcast(msg);
+        Msg::MODE(srv, c, *channel, flag);
     }
     else if(flag == "+o" || flag == "-o") //Make/Kick operators
     {
-        std::string flags; 
-        iss >> flags;  
-        if (flags.size() != 2 || (flags[0] != '+' && flags[0] != '-') || flags[1] != 'o') {
-            c.outbuf += ":server 501 " + c.nick + " :Unknown MODE flag\r\n"; // ERR_UMODEUNKNOWNFLAG
-            return;
-        }
-
         std::string nick;
         iss >> nick;
         if(nick.empty())
-        {
-            c.outbuf += ":server 461 " + c.nick + " MODE :Not enough parameters\r\n";
-            return;
-        }
+            Msg::ERR_NEEDMOREPARAMS(srv, c, "MODE");
+
+        else if(channel->is_on_client_list(nick))
+            Msg::ERR_NOSUCHNICK(srv, c, nick);
+
         else if(flag[0]== '+')
         {
             channel->make_operator(nick);
-            channel->broadcast(msg);
+            Msg::MODE(srv, c, *channel, flag, nick);
         }
         else if(flag[0]== '-')
         {
             channel->kick_operator(nick);
-            channel->broadcast(msg);
+            Msg::MODE(srv, c, *channel, flag, nick);
         }
     }
-
     else if(flag == "+l") //Set max_clients
     {
         std::string max_clients_input; 
         iss >> max_clients_input;
 
+        if(max_clients_input.empty())
+        {
+            Msg::ERR_NEEDMOREPARAMS(srv, c, "MODE");
+            return;
+        }
+
+        for (size_t i = 0; i < max_clients_input.size(); ++i)
+        {
+            if (!isdigit(max_clients_input[i]))
+            {
+                Msg::ERR_NEEDMOREPARAMS(srv, c, "MODE"); // invalid param = treat as missing
+                return;
+            }
+        }
+
         int max_clients = atoi(max_clients_input.c_str());
         channel->max_clients = max_clients;
-        channel->broadcast(msg);
+        Msg::MODE(srv, c, *channel, flag);
     }
     else if(flag == "-l") //Lift max_clients
     {
         channel->max_clients = 0;
-        channel->broadcast(msg);
+        Msg::MODE(srv, c, *channel, flag);
     }
+    else
+        Msg::ERR_UNKNOWNMODE(srv, c, flag);
+    return;
 }

@@ -6,21 +6,21 @@
 (SOURCE LEA)
 https://modern.ircdocs.horse/#topic-message
 										done?
-    ERR_NEEDMOREPARAMS (461)		=>	no
-    ERR_NOSUCHCHANNEL (403)			=>	no
-    ERR_NOTONCHANNEL (442)			=>	no
-    ERR_CHANOPRIVSNEEDED (482)		=>	no
-    RPL_NOTOPIC (331)				=>	no
-    RPL_TOPIC (332)					=>	no
+    ERR_NEEDMOREPARAMS (461)		=>	YES
+    ERR_NOSUCHCHANNEL (403)			=>	YES
+    ERR_NOTONCHANNEL (442)			=>	YES
+    ERR_CHANOPRIVSNEEDED (482)		=>	YES
+    RPL_NOTOPIC (331)				=>	YES
+    RPL_TOPIC (332)					=>	YES
 	(??? Don't know if necessary (berni, 28.08.)
     (Sourc: Lea)RPL_TOPICWHOTIME (333)		=> NO : we dont hav history in our server !! (Source: Lea)
 
 (CHATTY)
 ERROR                         | STATUS/DONE | DESCRIPTION
-ERR_NEEDMOREPARAMS (461)      | NO          | TOPIC without channel
-ERR_NOSUCHCHANNEL (403)       | NO          | Channel does not exist
-ERR_CHANOPRIVSNEEDED (482)    | NO          | Channel has +t and user is not channel operator
-ERR_NOTONCHANNEL (442)        | NO          | User not on channel (if you enforce membership for viewing/setting topic)
+ERR_NEEDMOREPARAMS (461)      | YES          | TOPIC without channel
+ERR_NOSUCHCHANNEL (403)       | YES          | Channel does not exist
+ERR_CHANOPRIVSNEEDED (482)    | YES          | Channel has +t and user is not channel operator
+ERR_NOTONCHANNEL (442)        | YES          | User not on channel (if you enforce membership for viewing/setting topic)
 
 
 */
@@ -30,35 +30,55 @@ void Client::do_topic(std::istringstream &iss, Server &srv, Client &c)
     std::string channel_name;
     iss >> channel_name;
 
+    if(channel_name.empty() || (channel_name[0] == ':' && channel_name.length()==1))
+    {
+        Msg::ERR_NEEDMOREPARAMS(srv, c, "TOPIC");
+        return;
+    }
+
     Channel* channel = Channel::find_channel(channel_name, srv);
     if(channel == NULL)
-    {                
-        c.outbuf += "Could not find reference channel: " + channel_name + "\r\n";
-        return;
-    }
-    Client * op = (*channel).find_operator(c.nick);
-    if(op == NULL && channel->topic_restricted)
     {
-        c.outbuf += "Sorry bud, you are not an operator. \r\n";
+        Msg::ERR_NOSUCHCHANNEL(srv, c, channel_name);   
         return;
     }
-    std::string topic;
+    
+    if(!channel->is_on_client_list(c.nick))
+    {
+        Msg::ERR_NOTONCHANNEL(srv, c, *channel);
+        return;
+    }
 
-    if(iss >> topic)
+    std::string topic;
+    std::getline(iss, topic);
+    if(topic.empty())
+    {
+        if(channel->topic.empty())
+            Msg::RPL_NOTOPIC(srv, c, *channel);
+        else
+            Msg::RPL_TOPIC(srv, c, *channel);
+        return;
+    }
+
+    if(channel->topic_restricted && !channel->is_operator(c.nick))
+    {
+        Msg::ERR_CHANOPRIVSNEEDED(srv, c, *channel);
+        return;
+    }
+
+    if(channel_name[0] == ':' && channel_name.length()==1)
+    {
+        channel->topic.erase();
+        Msg::BROADCAST_TOPIC(srv, c, *channel);
+        return;
+    }
+
+    if(!topic.empty())
     {
         channel->topic = topic;
-        c.outbuf += "332 " + c.nick + " " + channel->_name + " :" + topic + "\r\n";
+        Msg::RPL_TOPIC(srv, c, *channel);
+        return;
     }
-    else
-    {
-        if(topic.empty()) // Empty topic sent
-            channel->topic.erase();
 
-        else if(channel->topic.empty()) // No topic found
-            c.outbuf += "331 " + c.nick + " " + channel->_name + " :No topic is set\r\n";
-
-        else // Show topic
-            c.outbuf += channel->topic + "\r\n";
-    }
     return;
 }

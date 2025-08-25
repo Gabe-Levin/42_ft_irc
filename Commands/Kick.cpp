@@ -3,40 +3,52 @@
 
 /*
 ERROR                         | STATUS/DONE | DESCRIPTION
-ERR_NEEDMOREPARAMS (461)      | NO          | KICK without <channel> or <nick>
-ERR_NOSUCHCHANNEL (403)       | NO          | Channel does not exist
-ERR_NOTONCHANNEL (442)        | NO          | User is not on channel
-ERR_USERNOTINCHANNEL (441)    | NO          | Target user is not in channel
-ERR_CHANOPRIVSNEEDED (482)    | NO          | User is not channel operator
+ERR_NEEDMOREPARAMS (461)      | YES          | KICK without <channel> or <nick>
+ERR_NOSUCHCHANNEL (403)       | YES          | Channel does not exist
+ERR_NOTONCHANNEL (442)        | YES          | User is not on channel
+ERR_USERNOTINCHANNEL (441)    | YES          | Target user is not in channel
+ERR_CHANOPRIVSNEEDED (482)    | YES          | User is not channel operator
 
 */
 
 void Client::do_kick(std::istringstream &iss, Server &srv, Client &c)
 {
-    std::string channel_name;
+    std::string channel_name, nick, reason;
     iss >> channel_name;
+    iss >> nick;
+    if(channel_name.empty() || nick.empty())
+    {
+        Msg::ERR_NEEDMOREPARAMS(srv, c, "KICK");
+        return;
+    }
 
     Channel* channel = Channel::find_channel(channel_name, srv);
     if(channel == NULL)
-    {                
-        c.outbuf += "Could not find reference channel: " + channel_name + "\r\n";
+    {
+        Msg::ERR_NOSUCHCHANNEL(srv, c, channel_name);
         return;
     }
+
+    if(!(*channel).is_on_client_list(nick))
+    {
+        Msg::ERR_NOTONCHANNEL(srv, c, *channel);
+        return;
+    }
+
     Client * op = (*channel).find_operator(c.nick);
     if(op == NULL)
     {
-        c.outbuf += "Sorry bud, you are not an operator. \r\n";
+        Msg::ERR_CHANOPRIVSNEEDED(srv, c, *channel);
         return;
     }
     
-    std::string nick;
-    iss >> nick;
     if((*channel).kick_client(nick))
-    {
-        c.outbuf += "User " + nick + " could NOT be found in: " + channel_name + "\r\n";
-        return;
-    }
+        Msg::ERR_USERNOTINCHANNEL(srv, c, *channel, nick);
     else
-        c.outbuf += "User " + nick + " has been kicked from " + channel_name + "\r\n";
+    {
+        while (iss.peek() == ' ' || iss.peek() == ':') iss.get();
+        std::getline(iss, reason);
+        Msg::KICK(srv, c, *channel, nick, reason);
+    }
     return;
 }

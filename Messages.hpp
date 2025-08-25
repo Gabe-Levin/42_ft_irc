@@ -17,6 +17,14 @@ inline void BROADCAST_JOIN(Server& srv, Client& c, Channel& channel)
     channel.broadcast(msg);
 }
 
+inline void BROADCAST_TOPIC(Server& srv, Client& c, Channel& channel)
+{
+    std::string msg;
+    msg = ":" + c.nick + "!" + c.user + "@" + srv._name + " TOPIC " + channel._name + " " + channel.topic + "\r\n";
+    channel.broadcast(msg);
+}
+
+
 inline void CHANNEL(Server& srv, Client& c, Channel& channel, std::string msg)
 {
     std::cout << "inside the channel broadcast" << std::endl;
@@ -30,6 +38,28 @@ inline void CHANNEL(Server& srv, Client& c, Channel& channel, std::string msg)
         }
 }
 
+inline void KICK(Server& srv, Client& c, Channel& channel, std::string target_nick, std::string reason)
+{
+    std::string msg;
+    if(target_nick.empty())
+    {
+        msg = ":" + c.nick + "!" + c.user + "@" + srv._name +
+                " KICK " + channel._name + " " + target_nick + "\r\n";
+    }
+    else
+        msg = ":" + c.nick + "!" + c.user + "@" + srv._name +
+                " KICK " + channel._name + " " + target_nick +
+                          " :" + reason + "\r\n";
+}
+
+inline void INVITE(Server& srv, Client& c, Channel& channel, Client& invitee)
+{
+    std::string msg;
+    msg = ":" + c.nick + "!" + c.user + "@" + srv._name +
+                      " INVITE " + invitee.nick + " :" + channel._name + "\r\n";
+    invitee.outbuf += msg;
+}
+
 inline void CLIENT(Server& srv, Client& c, std::string target, std::string msg)
 {
      for(std::vector<Client*>::iterator it = srv.clients.begin(); it != srv.clients.end(); ++it)
@@ -41,6 +71,19 @@ inline void CLIENT(Server& srv, Client& c, std::string target, std::string msg)
         }
 }
 
+inline void MODE(Server& srv, Client& c, Channel& channel, std::string flag)
+{
+    std::string msg;
+    msg = ": " + c.nick + "!" + c.user + "@" + srv._name + " MODE " + channel._name + " " + flag + "\r\n";
+    channel.broadcast(msg);
+}
+
+inline void MODE(Server& srv, Client& c, Channel& channel, const std::string& flag, const std::string& param) {
+    std::string msg;
+    msg = ":" + c.nick + "!" + c.user + "@" + srv._name
+        + " MODE " + channel._name + " " + flag + " " + param + "\r\n";
+    channel.broadcast(msg);
+}
 
 // ------------------ REPLIES (001, 002, 003, 004, 324, 331, 332, 341, 353, 366) ------------------
 
@@ -94,13 +137,9 @@ inline void RPL_TOPIC(Server& srv, Client& c, Channel& channel) {
 }
 
 // 341: <nick> <channel>  (RPL_INVITING)
-inline void RPL_INVITING(Server& srv, Client& c, const std::string& invitedNick, Channel& ch) {
+inline void RPL_INVITING(Server& srv, Client& c, Channel& ch, const std::string& invitedNick) {
     c.outbuf += ":" + srv._name + " 341 " + c.nick + " " +
                  invitedNick + " " + ch._name + "\r\n";
-}
-inline void RPL_INVITING(Server& srv, Client& c, const std::string& invitedNick, const std::string& chan) {
-    c.outbuf += ":" + srv._name + " 341 " + c.nick + " " +
-                 invitedNick + " " + chan + "\r\n";
 }
 
 // 353: <symbol> <channel> :name1 name2 ...
@@ -179,21 +218,20 @@ inline void ERR_NICKCOLLISION(Server& srv, Client& c, const std::string& collidi
                  " :Nickname collision\r\n";
 }
 
+inline void ERR_USERNOTINCHANNEL(Server& srv, Client& c, Channel& ch,
+                                  const std::string& target_nick) {
+    c.outbuf += ":" + srv._name + " 441 " + c.nick + " " +
+                target_nick + " " + ch._name +
+                " :They aren't on that channel\r\n";
+}
+
 inline void ERR_NOTONCHANNEL(Server& srv, Client& c, Channel& ch) {
     c.outbuf += ":" + srv._name + " 442 " + c.nick + " " + ch._name +
                  " :You're not on that channel\r\n";
 }
-inline void ERR_NOTONCHANNEL(Server& srv, Client& c, const std::string& chan) {
-    c.outbuf += ":" + srv._name + " 442 " + c.nick + " " + chan +
-                 " :You're not on that channel\r\n";
-}
 
-inline void ERR_USERONCHANNEL(Server& srv, Client& c, const std::string& nickOn, Channel& ch) {
-    c.outbuf += ":" + srv._name + " 443 " + c.nick + " " + nickOn + " " + ch._name +
-                 " :is already on channel\r\n";
-}
-inline void ERR_USERONCHANNEL(Server& srv, Client& c, const std::string& nickOn, const std::string& chan) {
-    c.outbuf += ":" + srv._name + " 443 " + c.nick + " " + nickOn + " " + chan +
+inline void ERR_USERONCHANNEL(Server& srv, Client& c, Channel& ch, const std::string& target_nick) {
+    c.outbuf += ":" + srv._name + " 443 " + c.nick + " " + target_nick + " " + ch._name +
                  " :is already on channel\r\n";
 }
 
@@ -270,10 +308,6 @@ inline void ERR_NOPRIVILEGES(Server& srv, Client& c) {
 
 inline void ERR_CHANOPRIVSNEEDED(Server& srv, Client& c, Channel& ch) {
     c.outbuf += ":" + srv._name + " 482 " + c.nick + " " + ch._name +
-                 " :You're not channel operator\r\n";
-}
-inline void ERR_CHANOPRIVSNEEDED(Server& srv, Client& c, const std::string& chan) {
-    c.outbuf += ":" + srv._name + " 482 " + c.nick + " " + chan +
                  " :You're not channel operator\r\n";
 }
 
