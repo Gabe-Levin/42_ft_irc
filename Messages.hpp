@@ -9,6 +9,39 @@
 
 namespace Msg {
 
+// Generic broadcasts
+inline void BROADCAST_JOIN(Server& srv, Client& c, Channel& channel)
+{
+    std::string msg;
+    msg = ":" + c.nick + "!" + c.user + "@" + srv._name + " JOIN " + channel._name + "\r\n";
+    channel.broadcast(msg);
+}
+
+inline void CHANNEL(Server& srv, Client& c, Channel& channel, std::string msg)
+{
+    std::cout << "inside the channel broadcast" << std::endl;
+    for(std::vector<Client*>::iterator it = channel.clients.begin(); it != channel.clients.end(); ++it)
+        {
+            if(c.nick != (*it)->nick) // broadcast to all but the sender
+            {
+                (*it)->outbuf += ":" + c.nick + "!" + c.user + "@" + srv._name
+                        + " PRIVMSG " + channel._name + " :" + msg + "\r\n";
+            }
+        }
+}
+
+inline void CLIENT(Server& srv, Client& c, std::string target, std::string msg)
+{
+     for(std::vector<Client*>::iterator it = srv.clients.begin(); it != srv.clients.end(); ++it)
+        {
+            if(target == (*it)->nick)
+            {
+                (*it)->outbuf += ":" + c.nick + " " + "PRIVMSG" + " " + target + msg + "\r\n";
+            }
+        }
+}
+
+
 // ------------------ REPLIES (001, 002, 003, 004, 324, 331, 332, 341, 353, 366) ------------------
 
 inline void RPL_WELCOME(Server& srv, Client& c) {
@@ -53,19 +86,11 @@ inline void RPL_NOTOPIC(Server& srv, Client& c, Channel& ch) {
     c.outbuf += ":" + srv._name + " 331 " + c.nick + " " +
                  ch._name + " :No topic is set\r\n";
 }
-inline void RPL_NOTOPIC(Server& srv, Client& c, const std::string& chan) {
-    c.outbuf += ":" + srv._name + " 331 " + c.nick + " " +
-                 chan + " :No topic is set\r\n";
-}
 
 // 332: <channel> :<topic>
-inline void RPL_TOPIC(Server& srv, Client& c, Channel& ch, const std::string& topic) {
+inline void RPL_TOPIC(Server& srv, Client& c, Channel& channel) {
     c.outbuf += ":" + srv._name + " 332 " + c.nick + " " +
-                 ch._name + " :" + topic + "\r\n";
-}
-inline void RPL_TOPIC(Server& srv, Client& c, const std::string& chan, const std::string& topic) {
-    c.outbuf += ":" + srv._name + " 332 " + c.nick + " " +
-                 chan + " :" + topic + "\r\n";
+                 channel._name + " :" + channel.topic + "\r\n";
 }
 
 // 341: <nick> <channel>  (RPL_INVITING)
@@ -79,42 +104,22 @@ inline void RPL_INVITING(Server& srv, Client& c, const std::string& invitedNick,
 }
 
 // 353: <symbol> <channel> :name1 name2 ...
-inline void RPL_NAMREPLY(Server& srv, Client& c,
-                         const std::string& visibilitySymbol, // "=", "@", or "*"
-                         Channel& ch,
-                         const std::vector<std::string>& names) {
+inline void RPL_NAMREPLY(Server& srv, Client& c, Channel& channel) {
     std::string list;
-    for (std::vector<std::string>::size_type i = 0; i < names.size(); ++i) {
-        if (i) list += " ";
-        list += names[i];
+    for(std::vector<Client*>::iterator it = channel.clients.begin(); it != channel.clients.end(); ++it)
+    {
+        if(channel.is_operator((*it)->nick))
+            list += "@";
+        list += (*it)->nick + " ";
     }
-    c.outbuf += ":" + srv._name + " 353 " + c.nick + " " +
-                 visibilitySymbol + " " + ch._name + " :" + list + "\r\n";
-}
-inline void RPL_NAMREPLY(Server& srv, Client& c,
-                         const std::string& visibilitySymbol,
-                         const std::string& chan,
-                         const std::vector<std::string>& names) {
-    std::string list;
-    for (std::vector<std::string>::size_type i = 0; i < names.size(); ++i) {
-        if (i) list += " ";
-        list += names[i];
-    }
-    c.outbuf += ":" + srv._name + " 353 " + c.nick + " " +
-                 visibilitySymbol + " " + chan + " :" + list + "\r\n";
+    c.outbuf += ":" + srv._name + " 353 " + c.nick + " = " + channel._name + " :" + list + "\r\n";
 }
 
 // 366: <channel> :End of /NAMES list.
-inline void RPL_ENDOFNAMES(Server& srv, Client& c, Channel& ch) {
+inline void RPL_ENDOFNAMES(Server& srv, Client& c, Channel& channel) {
     c.outbuf += ":" + srv._name + " 366 " + c.nick + " " +
-                 ch._name + " :End of /NAMES list.\r\n";
+                 channel._name + " :End of /NAMES list.\r\n";
 }
-inline void RPL_ENDOFNAMES(Server& srv, Client& c, const std::string& chan) {
-    c.outbuf += ":" + srv._name + " 366 " + c.nick + " " +
-                 chan + " :End of /NAMES list.\r\n";
-}
-
-
 
 
 // ------------------ ERRORS (401,403,404,409,411,412,421,431,432,433,436,442,443,451,461,462,464,471..476,481,482,501,502) ------------------
@@ -124,21 +129,13 @@ inline void ERR_NOSUCHNICK(Server& srv, Client& c, const std::string &target) {
                  " :No such nick/channel\r\n";
 }
 
-inline void ERR_NOSUCHCHANNEL(Server& srv, Client& c, Channel& ch) {
-    c.outbuf += ":" + srv._name + " 403 " + c.nick + " " + ch._name +
-                 " :No such channel\r\n";
-}
-inline void ERR_NOSUCHCHANNEL(Server& srv, Client& c, const std::string& chan) {
-    c.outbuf += ":" + srv._name + " 403 " + c.nick + " " + chan +
+inline void ERR_NOSUCHCHANNEL(Server& srv, Client& c, std::string channel_name) {
+    c.outbuf += ":" + srv._name + " 403 " + c.nick + " " + channel_name +
                  " :No such channel\r\n";
 }
 
 inline void ERR_CANNOTSENDTOCHAN(Server& srv, Client& c, Channel& ch) {
     c.outbuf += ":" + srv._name + " 404 " + c.nick + " " + ch._name +
-                 " :Cannot send to channel\r\n";
-}
-inline void ERR_CANNOTSENDTOCHAN(Server& srv, Client& c, const std::string& chan) {
-    c.outbuf += ":" + srv._name + " 404 " + c.nick + " " + chan +
                  " :Cannot send to channel\r\n";
 }
 

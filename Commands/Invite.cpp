@@ -1,4 +1,6 @@
 #include "../Client.hpp"
+#include "../Messages.hpp"
+
 	/*
 (SOURCE LEA)
 https://modern.ircdocs.horse/#invite-message

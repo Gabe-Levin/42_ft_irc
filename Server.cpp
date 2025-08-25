@@ -97,6 +97,17 @@ Client* Server::get_client(std::string nick)
     return NULL;
 }
 
+bool Server::is_client(std::string nick)
+{
+    for(std::vector<Client*>::iterator it = clients.begin(); it != clients.end(); it++)
+    {
+        if((*it)->nick == nick)
+            return true;
+    }
+    return false;
+}
+
+
 bool Server::is_nick_taken(std::string nick)
 {
     for(std::vector<Client*>::iterator it = clients.begin(); it != clients.end(); it++)

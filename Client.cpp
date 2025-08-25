@@ -70,6 +70,7 @@ void Client::handle_cmd(Client &c, const std::string &line, Server &srv)
     std::string cmd;
 
     iss >> cmd; //set the first word in the iss stream to cmd
+    std::cout << "-------- " << cmd << " --------" << std::endl;
 
     // Registration
     if(cmd == "PASS")
@@ -87,7 +88,7 @@ void Client::handle_cmd(Client &c, const std::string &line, Server &srv)
         Msg::RPL_MYINFO(srv, c);
     }
 
-    // Cmds after registration
+    // User Cmds
     if(cmd == "JOIN")
         c.do_join(iss, srv, c);
     if(cmd == "PRIVMSG")

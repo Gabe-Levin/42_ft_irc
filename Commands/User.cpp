@@ -19,9 +19,9 @@ void Client::do_user(std::istringstream &iss, Server &srv, Client &c)
         return;
     }
 
-    std::string username, hostname, servername, realname;
+    std::string user, hostname, servername, realname;
 
-    if (!(iss >> username >> hostname >> servername)) {
+    if (!(iss >> user >> hostname >> servername)) {
         Msg::ERR_NEEDMOREPARAMS(srv, c, "USER");
         return;
     } 

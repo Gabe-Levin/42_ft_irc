@@ -45,5 +45,4 @@ struct Client
     void do_user(std::istringstream &iss, Server &srv, Client &c);
 };
 
-
 #endif

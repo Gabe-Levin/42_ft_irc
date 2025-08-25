@@ -1,10 +1,11 @@
 #include "../Client.hpp"
+#include "../Messages.hpp"
 
 /*
 (SOURCE LEA)
     https://modern.ircdocs.horse/#join-message
 									done?
-    ERR_NOTREGISTERED (451)		=>	no
+    ERR_NOTREGISTERED (451)		=>	YES
 	ERR_NEEDMOREPARAMS (461)	=>	no
     ERR_NOSUCHCHANNEL (403) 	=>	no
     ERR_TOOMANYCHANNELS (405)	=> (LEA: ) we ignore that...
@@ -20,59 +21,110 @@
 
 (SOURCE CHATTY)
 ERROR                         | STATUS/DONE | DESCRIPTION
-ERR_NEEDMOREPARAMS (461)      | NO          | JOIN without channel
-ERR_BADCHANMASK (476)         | NO          | Invalid channel name
-ERR_INVITEONLYCHAN (473)      | NO          | JOIN to +i channel without invite
-ERR_BADCHANNELKEY (475)       | NO          | JOIN with wrong key on +k channel
-ERR_CHANNELISFULL (471)       | NO          | JOIN when +l channel limit is reached
+ERR_NEEDMOREPARAMS (461)      | YES          | JOIN without channel
+ERR_BADCHANMASK (476)         | YES          | Invalid channel name
+ERR_INVITEONLYCHAN (473)      | YES          | JOIN to +i channel without invite
+ERR_BADCHANNELKEY (475)       | YES          | JOIN with wrong key on +k channel
+ERR_CHANNELISFULL (471)       | YES          | JOIN when +l channel limit is reached
 
-
+RPL_TOPIC (332)               | YES         | If the channel has a topic set
+RPL_NOTOPIC (331)             | YES         | If no topic is set on the channel
+RPL_NAMREPLY (353)            | YES         | List of visible nicks in channel (@ prefix for ops)
+RPL_ENDOFNAMES (366)          | YES         | End of NAMES list marker
 */
+
+bool isValidChannelName(const std::string& name) {
+    if (name.empty())
+        return false;
+    if (name[0] != '#' && name[0] != '&')
+        return false;
+    if (name.size() == 1)
+        return false;
+    for (size_t i = 0; i < name.size(); ++i) {
+        char c = name[i];
+        if (c == ' ' || c == ',' || c == '\a' || c == '\r' || c == '\n')
+            return false;
+    }
+    return true;
+}
 
 void Client::do_join(std::istringstream &iss, Server &srv, Client &c)
 {
-    std::string channel;
+    std::string channel_name;
+    std::string remainder;
+    iss >> channel_name;
+    
     if(!c.registered)
-        c.outbuf += "You must register before you can join/create a channel \r\n";
-    else
     {
-        iss >> channel; //TODO: validate channel input
-        Channel *existing_channel = Channel::find_channel(channel, srv);
-        if(existing_channel == NULL)
-        {
-            Channel new_channel(channel);
-            srv.channels.push_back(new_channel);
-            srv.channels.back().clients.push_back(&c);
-
-            c.outbuf += "Congrats, you have just created and joined a new channel: '" + channel + "'!\r\n";
-            srv.channels.back().op_list.push_back(&c);
-            c.outbuf += "You are now an operator on '" + channel + "'!\r\n";
-            return;
-        }
-        if(!(*existing_channel).is_channel_joinable(c.nick))
-        {
-            c.outbuf += ":server 473 " + c.nick + " " + existing_channel->_name + " :Cannot join channel (+i)\r\n";
-            return;
-        }
-        if(!(*existing_channel).secretpwd.empty())
-        {
-            std::string secretpwd;
-            iss >> secretpwd;
-
-            if((*existing_channel).secretpwd != secretpwd)
-            {
-                c.outbuf += ":server 475 " + c.nick + " " + existing_channel->_name + " :Cannot join channel (+k)\r\n";
-                return;
-            }
-        }
-        if((*existing_channel).max_clients != 0 && (*existing_channel).max_clients < ((*existing_channel).clients.size() +1))
-        {
-            c.outbuf += ":server 473 " + c.nick + " " + existing_channel->_name + " :Cannot join channel (+i)\r\n";
-            return;
-        }
-
-        (*existing_channel).clients.push_back(&c);
-        c.outbuf += "Congrats, you have just joined a new channel '" + channel + "'!\r\n";
+        Msg::ERR_NOTREGISTERED(srv, c);
         return;
     }
+
+    if(channel_name.empty())
+    {
+        Msg::ERR_NEEDMOREPARAMS(srv, c, "JOIN");
+        return;
+    }
+
+    if(iss >> remainder)
+        channel_name += remainder;
+
+    if(!isValidChannelName(channel_name))
+    {
+        Msg::ERR_BADCHANMASK(srv, c, channel_name);
+        return;
+    }
+
+    Channel *channel = Channel::find_channel(channel_name, srv);
+    if(channel == NULL) // New channel
+    {
+        Channel new_channel(channel_name);
+        srv.channels.push_back(new_channel);
+        channel = &srv.channels.back(); // Pointer to the server owned channel
+        (*channel).clients.push_back(&c);
+        (*channel).op_list.push_back(&c);
+
+        Msg::BROADCAST_JOIN(srv, c, *channel);
+        Msg::RPL_NOTOPIC(srv, c, *channel);
+        Msg::RPL_NAMREPLY(srv, c, *channel);
+        Msg::RPL_ENDOFNAMES(srv, c, *channel);
+        return;
+    }
+
+    // Check if existing channel has restrictions
+    if((*channel).invite_only && !(*channel).is_on_invite_list(c.nick))
+    {
+        Msg::ERR_INVITEONLYCHAN(srv, c, channel->_name);
+        return;
+    }
+
+    if(!(*channel).secretpwd.empty())
+    {
+        std::string secretpwd;
+        iss >> secretpwd;
+
+        if((*channel).secretpwd != secretpwd)
+        {
+            Msg::ERR_BADCHANNELKEY(srv, c, channel->_name);
+            return;
+        }
+    }
+
+    if((*channel).max_clients != 0 && (*channel).max_clients < ((*channel).clients.size() +1))
+    {
+        Msg::ERR_CHANNELISFULL(srv, c, (*channel)._name);
+        return;
+    }
+
+    (*channel).clients.push_back(&c);
+
+    // Messaging for Joining and existing channel
+    Msg::BROADCAST_JOIN(srv, c, *channel);
+    if((*channel).topic.empty())
+        Msg::RPL_NOTOPIC(srv, c, *channel);
+    else
+        Msg::RPL_TOPIC(srv, c, *channel);
+    Msg::RPL_NAMREPLY(srv, c, *channel);
+    Msg::RPL_ENDOFNAMES(srv, c, *channel);
+    return;
 }

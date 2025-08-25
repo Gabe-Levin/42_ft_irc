@@ -79,14 +79,6 @@ bool Channel::is_on_invite_list(std::string nick)
     return false;
 }
 
-bool Channel::is_channel_joinable(std::string nick)
-{
-    if(invite_only == true)
-        return is_on_invite_list(nick);
-    return true; 
-
-}
-
 bool Channel::make_operator(std::string nick)
 {
     for(std::vector<Client*>::iterator it = clients.begin(); it != clients.end(); ++it)
@@ -97,6 +89,15 @@ bool Channel::make_operator(std::string nick)
                 op_list.push_back(*it);
             return true;
         }
+    }
+    return false;
+}
+bool Channel::is_operator(std::string nick)
+{
+    for(std::vector<Client*>::iterator it = op_list.begin(); it != op_list.end(); it++)
+    {
+        if((*it)->nick == nick)
+            return true;
     }
     return false;
 }
