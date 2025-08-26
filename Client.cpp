@@ -100,4 +100,6 @@ void Client::handle_cmd(Client &c, const std::string &line, Server &srv)
         c.do_invite(iss, srv, c);
     if(cmd == "MODE")
         c.do_mode(iss, srv, c);
+
+    // Msg::ERR_UNKNOWNCOMMAND(srv, c, cmd);
 }
