@@ -75,7 +75,7 @@ void Client::do_join(std::istringstream &iss, Server &srv, Client &c)
         return;
     }
 
-    Channel *channel = Channel::find_channel(channel_name, srv);
+    Channel *channel = srv.find_channel(channel_name);
     if(channel == NULL) // New channel
     {
         Channel new_channel(channel_name);

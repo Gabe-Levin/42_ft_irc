@@ -4,13 +4,48 @@
 #include <string>
 #include <cstdlib> 
 
-//TODO: this also needs to close and erase the users from all channels and from the server
-void Client::close_client(std::vector<struct pollfd>& pfds, std::map<int, Client>& clients, size_t idx)
+// Canonical Form
+Client::Client(): fd(-1), password(false), registered(false), toDisconnect(false){};
+
+Client::Client(const Client& other): 
+    fd(other.fd),
+    password(other.password),
+    registered(other.registered),
+    toDisconnect(other.toDisconnect),
+    inbuf(other.inbuf),
+    outbuf(other.outbuf),
+    nick(other.nick),
+    user(other.user)
+{}
+
+Client& Client::operator=(const Client &other) 
+{
+    if (this != &other) {
+        fd = other.fd;
+        nick = other.nick;
+        user = other.user;
+        inbuf = other.inbuf;
+        registered = other.registered;
+        outbuf = other.outbuf;
+    }
+    return *this;
+};
+
+Client::~Client() {};
+
+Client::Client(int f): fd(f) {};
+
+
+void Client::close_client(std::vector<struct pollfd>& pfds, Server &srv, size_t idx)
 {
     int fd = pfds[idx].fd;
-    std::cout << "Closing client fd: " << fd << std::endl; // Add this debug line
+    std::cout << "Closing client fd: " << fd << " at index: " << idx << std::endl;
+    Client *c = srv.get_client(fd);
+    for(std::vector<Channel>::iterator it = srv.channels.begin(); it != srv.channels.end(); it++)
+        it->kick_client(c->nick);
+
     close(fd);
-    clients.erase(fd);
+    srv.rm_client(fd);
     pfds.erase(pfds.begin() + idx);
 }
 
@@ -25,44 +60,6 @@ bool Client::pop_line(std::string &buffer, std::string &line)
     return true;
 }
 
-void Client::accept_new(std::vector<struct pollfd> &pfds, std::map<int, Client> &clients, Server &srv, int listenfd)
-{
-    if(pfds[0].revents & POLLIN)
-    {
-        while(true)
-        {
-            struct sockaddr_storage ss;
-            socklen_t slen = sizeof(ss);
-            int cfd = accept(listenfd, (struct sockaddr*)&ss, &slen);
-            if(cfd < 0)
-            {
-                if(errno == EAGAIN || errno == EWOULDBLOCK) break;
-                std::cerr << "accept error: " << std::strerror(errno) << std::endl;
-                break;
-            }
-            if(Server::set_nonblocking(cfd) < 0)
-            {
-                std::cerr << "fcntl nonblock (client) failed\n";
-                close(cfd);
-                continue;
-            }
-
-            clients.insert(std::make_pair(cfd, Client(cfd)));
-            Client* cli = &clients.find(cfd)->second;
-
-            struct pollfd p;
-            std::memset(&p, 0, sizeof(p));
-            p.fd = cfd;
-            p.events = POLLIN;
-            pfds.push_back(p);
-
-            srv.clients.push_back(cli);
-
-            // Greeting
-            clients[cfd].outbuf += "Welcome to the server. Please register your PASS, NICK, and USER\r\n";
-        }
-    }
-}
 
 void Client::handle_cmd(Client &c, const std::string &line, Server &srv)
 {

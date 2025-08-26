@@ -22,7 +22,6 @@ void Client::do_privmsg(std::istringstream &iss, Server &srv, Client &c)
     std::string target;
     std::string message;
     iss >> target;
-    std::cout << "INSIDE DO PRIVMSG" << std::endl;
 
     if(target.empty())
     {
@@ -43,18 +42,15 @@ void Client::do_privmsg(std::istringstream &iss, Server &srv, Client &c)
     // Handle messages to a channel
     if(target[0] == '#')
     { 
-        std::cout << "INSIDE THE CHANNEL PRIVMSG CONDITIONAL" << std::endl;
         Channel *channel = Channel::find_channel(target, srv);
 
         if (channel == NULL)
         {
-            std::cout << "ERR_NOSUCHCHANNEL" << std::endl;
             Msg::ERR_NOSUCHCHANNEL(srv, c, target);
         }
 
         else if (!(*channel).is_on_client_list(c.nick))
         {
-            std::cout << "ERR_CANNOTSENDTOCHAN" << std::endl;
             Msg::ERR_CANNOTSENDTOCHAN(srv, c, *channel);
         }
 

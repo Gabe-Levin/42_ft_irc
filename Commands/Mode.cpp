@@ -113,11 +113,15 @@ void Client::do_mode(std::istringstream &iss, Server &srv, Client &c)
     {
         std::string nick;
         iss >> nick;
+        std::cout << "nick: " << nick << std::endl;
         if(nick.empty())
             Msg::ERR_NEEDMOREPARAMS(srv, c, "MODE");
 
-        else if(channel->is_on_client_list(nick))
+        else if(!channel->is_on_client_list(nick))
+        {
+            std::cout << "inside of the weird one" << std::endl;
             Msg::ERR_NOSUCHNICK(srv, c, nick);
+        }
 
         else if(flag[0]== '+')
         {
@@ -126,6 +130,7 @@ void Client::do_mode(std::istringstream &iss, Server &srv, Client &c)
         }
         else if(flag[0]== '-')
         {
+            std::cout << "inside -o" << std::endl;
             channel->kick_operator(nick);
             Msg::MODE(srv, c, *channel, flag, nick);
         }

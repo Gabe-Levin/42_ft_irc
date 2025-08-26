@@ -1,5 +1,42 @@
 #include "Channel.hpp"
 
+// Canonical Form
+Channel::Channel(): invite_only(false), topic_restricted(false), max_clients(0){}
+
+Channel::Channel(const Channel& other)
+    : invite_only(other.invite_only)
+    , topic_restricted(other.topic_restricted)
+    , max_clients(other.max_clients)
+    , _name(other._name)
+    , topic(other.topic)
+    , secretpwd(other.secretpwd)
+    , clients(other.clients)        
+    , op_list(other.op_list)        
+    , invite_list(other.invite_list)
+{}
+
+Channel& Channel::operator=(const Channel& other) 
+{
+    if (this != &other) {
+        invite_only     = other.invite_only;
+        topic_restricted= other.topic_restricted;
+        max_clients     = other.max_clients;
+        _name           = other._name;
+        topic           = other.topic;
+        secretpwd       = other.secretpwd;
+        clients         = other.clients;     
+        op_list         = other.op_list;     
+        invite_list     = other.invite_list; 
+    }
+    return *this;
+}
+
+Channel::~Channel(){}
+
+Channel::Channel(std::string name):  invite_only(false), topic_restricted(false), max_clients(0), _name(name){};
+
+
+// Methods
 Channel* Channel::find_channel(std::string channel, Server &srv)
 {
     for(std::vector<Channel>::iterator it = srv.channels.begin(); it != srv.channels.end(); it++)
@@ -51,6 +88,10 @@ bool Channel::is_on_client_list(std::string nick)
 {
     for(std::vector<Client*>::iterator it = clients.begin(); it != clients.end(); ++it)
     {
+        std::cout << "nick inside on-client list" << std::endl;
+        std::cout << (*it)->nick << std::endl;
+        std::cout << nick << std::endl;
+
         if(nick == (*it)->nick)
         {
             return true;
