@@ -40,7 +40,7 @@ void Client::do_mode(std::istringstream &iss, Server &srv, Client &c)
     iss >> channel_name;
     iss >> flag;
 
-    if(channel_name.empty() || flag.empty())
+    if(channel_name.empty())
     {
         Msg::ERR_NEEDMOREPARAMS(srv, c, "MODE");
         return;
@@ -50,6 +50,12 @@ void Client::do_mode(std::istringstream &iss, Server &srv, Client &c)
     if(channel == NULL)
     {
         Msg::ERR_NOSUCHCHANNEL(srv, c, channel_name);
+        return;
+    }
+
+    if(flag.empty())
+    {
+        Msg::RPL_CHANNELMODEIS(srv, c, *channel);
         return;
     }
 

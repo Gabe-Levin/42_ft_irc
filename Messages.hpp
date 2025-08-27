@@ -3,6 +3,8 @@
 
 #include <string>
 #include <vector>
+#include <set>
+#include <sstream>  // Add this include
 #include "Server.hpp"
 #include "Client.hpp"
 #include "Channel.hpp"
@@ -39,12 +41,23 @@ inline void BROADCAST_QUIT(Server& srv, Client& c, const std::string& reason)
     else
         msg = ":" + c.nick + "!" + c.user + "@" + srv._name +
             " QUIT :Quit: " + reason + "\r\n";
+
+    std::set<Client*> targets;
     for (std::vector<Channel>::iterator it = srv.channels.begin(); it != srv.channels.end(); ++it)
     {
-        if (it->is_on_client_list(c.nick))
-            it->broadcast_to_others(msg, c.nick);
+        if (!it->is_on_client_list(c.nick)) continue;
+
+        for (std::vector<Client*>::const_iterator m = it->clients.begin();
+                m != it->clients.end(); ++m)
+            {
+                if (*m && (*m)->nick != c.nick)
+                    targets.insert(*m);
+            }
     }
+    for (std::set<Client*>::iterator it = targets.begin(); it != targets.end(); ++it)
+        (*it)->outbuf += msg;
 }
+
 inline void CHANNEL(Server& srv, Client& c, Channel& channel, std::string msg)
 {
     for(std::vector<Client*>::iterator it = channel.clients.begin(); it != channel.clients.end(); ++it)
@@ -94,7 +107,7 @@ inline void CLIENT(Server& srv, Client& c, std::string target, std::string msg)
         {
             if(target == it->nick)
             {
-                it->outbuf += ":" + c.nick + " " + "PRIVMSG" + " " + target + msg + "\r\n";
+                it->outbuf += ":" + c.nick + " " + "PRIVMSG" + " " + target + " :" + msg + "\r\n";
             }
         }
 }
@@ -188,8 +201,34 @@ inline void RPL_ENDOFNAMES(Server& srv, Client& c, Channel& channel) {
                  channel._name + " :End of /NAMES list." + RESET + "\r\n";
 }
 
+inline void RPL_CHANNELMODEIS(Server& srv, Client& c, Channel& ch) {
+    std::string flags;
 
-// ------------------ ERRORS (401,403,404,409,411,412,421,431,432,433,436,442,443,451,461,462,464,471..476,481,482,501,502) ------------------
+    if(ch.invite_only)
+        flags += "i"; 
+    if(ch.topic_restricted)
+        flags += "t";
+    if(!ch.secretpwd.empty())
+        flags += "k";
+    if(ch.max_clients > 0)
+        flags += "l";
+
+    std::cout << "max_clients: " << ch.max_clients << std::endl;
+
+    std::string params;
+    if(!ch.secretpwd.empty())
+        params += " key " + ch.secretpwd;
+    if(ch.max_clients > 0)
+    {
+        std::ostringstream oss;
+        oss << ch.max_clients;
+        params += " limit " + oss.str();
+    }
+
+    c.outbuf += ":" + srv._name + " 324 " + c.nick + " " + ch._name + " +" + flags + params + "\r\n";
+}
+
+// ------------------ ERRORS (401,403,404,409,411,412,417, 421,431,432,433,436,442,443,451,461,462,464,471..476,481,482,501,502) ------------------
 
 inline void ERR_NOSUCHNICK(Server& srv, Client& c, const std::string &target) {
     c.outbuf += RED + ":" + srv._name + " 401 " + c.nick + " " + target +
@@ -198,7 +237,7 @@ inline void ERR_NOSUCHNICK(Server& srv, Client& c, const std::string &target) {
 
 inline void ERR_NOSUCHCHANNEL(Server& srv, Client& c, std::string channel_name) {
     c.outbuf += RED + ":" + srv._name + " 403 " + c.nick + " " + channel_name +
-                 " :No such channel\r\n" + RESET + "\r\n";
+                 " :No such channel" + RESET + "\r\n";
 }
 
 inline void ERR_CANNOTSENDTOCHAN(Server& srv, Client& c, Channel& ch) {
@@ -244,6 +283,11 @@ inline void ERR_NICKNAMEINUSE(Server& srv, Client& c, const std::string& inUseNi
 inline void ERR_NICKCOLLISION(Server& srv, Client& c, const std::string& collidingNick) {
     c.outbuf += RED + ":" + srv._name + " 436 " + c.nick + " " + collidingNick +
                  " :Nickname collision" + RESET + "\r\n";
+}
+
+inline void ERR_INPUTTOOLONG(Server& srv, Client& c) {
+    c.outbuf += RED + ":" + srv._name + " 417 " + c.nick +
+                 " :Input line too long" + RESET + "\r\n";
 }
 
 inline void ERR_USERNOTINCHANNEL(Server& srv, Client& c, Channel& ch,

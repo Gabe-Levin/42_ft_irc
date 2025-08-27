@@ -13,7 +13,17 @@ ERR_PASSWDMISMATCH (464)      | YES          | Wrong password (disconnect after 
 void Client::do_pass(std::istringstream &iss, Server &srv, Client &c)
 {
     std::string pass;
-    iss >> pass;
+    iss >> pass; 
+    std::string rest;
+    std::getline(iss, rest);
+
+    while(!pass.empty() && pass[0] == ' ') pass.erase(0,1);
+    if(pass[0] == ':')
+    {
+        pass.erase(0,1);
+        pass = pass + rest;
+    }
+
     if(c.registered == true)
     {
         Msg::ERR_ALREADYREGISTERED(srv, c);

@@ -25,10 +25,10 @@ ERR_NOSUCHNICK (401)          | YES          | Target nickname does not exist
 
 void Client::do_invite(std::istringstream &iss, Server &srv, Client &c)
 {
-    std::string channel_name;
     std::string nick;
-    iss >> channel_name;
+    std::string channel_name;
     iss >> nick;
+    iss >> channel_name; 
 
     if(channel_name.empty() || nick.empty())
     {
@@ -36,17 +36,17 @@ void Client::do_invite(std::istringstream &iss, Server &srv, Client &c)
         return;
     }
 
-    Channel *channel = (Channel::find_channel(channel_name, srv));
-    if(channel == NULL)
-    {
-        Msg::ERR_NOSUCHCHANNEL(srv, c, channel_name);
-        return;
-    }
-
     Client *invitee = srv.get_client(nick);
     if (invitee == NULL)
     {
         Msg::ERR_NOSUCHNICK(srv, c, nick);
+        return;
+    }
+
+    Channel *channel = (Channel::find_channel(channel_name, srv));
+    if(channel == NULL)
+    {
+        Msg::ERR_NOSUCHCHANNEL(srv, c, channel_name);
         return;
     }
 

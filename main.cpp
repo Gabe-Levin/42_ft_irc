@@ -89,5 +89,6 @@ int main(int argc, char** argv)
 
 //TODO extra colon in some outputs (can't recreate??)
 //TODO Segfault on invite with this format: INVITE wouter #test1 (can't recreate??)
-//TODO determine a way to quit elegently
 //TODO Ask Chatty to create an script for testing with two connections going back and forth
+
+//TODO handle lists, PRIVMSG nick1,nick2,#chan :Hallo

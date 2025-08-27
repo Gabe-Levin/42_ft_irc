@@ -51,26 +51,22 @@ bool isValidChannelName(const std::string& name) {
 void Client::do_join(std::istringstream &iss, Server &srv, Client &c)
 {
     std::string channel_name;
-    std::string remainder;
+    std::string password;
     iss >> channel_name;
     
-    
-
     if(channel_name.empty())
     {
         Msg::ERR_NEEDMOREPARAMS(srv, c, "JOIN");
         return;
     }
 
-    if(iss >> remainder)
-        channel_name += remainder;
-
+    
     if(!isValidChannelName(channel_name))
     {
         Msg::ERR_BADCHANMASK(srv, c, channel_name);
         return;
     }
-
+    
     Channel *channel = srv.find_channel(channel_name);
     if(channel == NULL) // New channel
     {
@@ -79,7 +75,7 @@ void Client::do_join(std::istringstream &iss, Server &srv, Client &c)
         channel = &srv.channels.back(); // Pointer to the server owned channel
         (*channel).clients.push_back(&c);
         (*channel).op_list.push_back(&c);
-
+        
         Msg::BROADCAST_JOIN(srv, c, *channel);
         Msg::RPL_NOTOPIC(srv, c, *channel);
         Msg::RPL_NAMREPLY(srv, c, *channel);
@@ -91,14 +87,14 @@ void Client::do_join(std::istringstream &iss, Server &srv, Client &c)
         Msg::ERR_USERONCHANNEL(srv, c, *channel);
         return;
     }
-
+    
     // Check if existing channel has restrictions
     if((*channel).invite_only && !(*channel).is_on_invite_list(c.nick))
     {
         Msg::ERR_INVITEONLYCHAN(srv, c, channel->_name);
         return;
     }
-
+    
     if(!(*channel).secretpwd.empty())
     {
         std::string secretpwd;

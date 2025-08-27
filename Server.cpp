@@ -296,7 +296,7 @@ int Server::create_listen_socket()
 
 bool Server::handle_client_input(Server &srv, Client &client, int &fd)
 {
-    char buf[512];
+    char buf[510];
     while(true)
     {
         int n = recv(fd, buf, sizeof(buf), 0);
@@ -306,6 +306,11 @@ bool Server::handle_client_input(Server &srv, Client &client, int &fd)
             std::string line;
             while(Client::pop_line(client.inbuf, line))
             {
+                 if (line.size() > 510) // 510 + "\r\n" = 512
+                    {
+                        Msg::ERR_INPUTTOOLONG(srv, client);
+                        continue;
+                    }
                 Client::handle_cmd(client, line, *this);
             }
         }

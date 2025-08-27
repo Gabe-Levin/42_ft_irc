@@ -18,6 +18,12 @@ void Client::do_user(std::istringstream &iss, Server &srv, Client &c)
         return;
     }
 
+    if(c.nick.empty())
+    { 
+        Msg::ERR_NOTREGISTERED(srv, c);
+        return;
+    }
+
     if(c.registered == true)
     {
         Msg::ERR_ALREADYREGISTERED(srv, c);
