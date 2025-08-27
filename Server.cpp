@@ -1,5 +1,6 @@
 
 #include "Server.hpp"
+#include "Messages.hpp"
 
 
 // Canonical Form
@@ -293,7 +294,7 @@ int Server::create_listen_socket()
     return listenfd;
 }
 
-bool Server::handle_client_input(Client &client, int &fd)
+bool Server::handle_client_input(Server &srv, Client &client, int &fd)
 {
     char buf[512];
     while(true)
@@ -309,7 +310,11 @@ bool Server::handle_client_input(Client &client, int &fd)
             }
         }
         else if (n == 0)  // Peer closed. ie. nothing to read
+        {
+            Msg::BROADCAST_QUIT(srv, client, "");
+            client.toDisconnect = true;
             return false;
+        }
         else
         {
             if (errno == EAGAIN || errno == EWOULDBLOCK) 

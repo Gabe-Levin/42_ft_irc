@@ -80,7 +80,7 @@ void Client::handle_cmd(Client &c, const std::string &line, Server &srv)
     std::istringstream iss(line);
     std::string cmd;
 
-    iss >> cmd; //set the first word in the iss stream to cmd
+    iss >> cmd;
     std::cout << "-------- " << cmd << " --------" << std::endl;
 
     // Registration
@@ -99,6 +99,8 @@ void Client::handle_cmd(Client &c, const std::string &line, Server &srv)
     }
     
     // User Cmds
+    else if(cmd == "QUIT")
+        c.do_quit(iss, srv, c);
     else if(cmd == "NAMES")
         c.do_names(iss, srv, c);
     else if(cmd == "PART")

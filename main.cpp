@@ -61,7 +61,7 @@ int main(int argc, char** argv)
             bool success = true;
             // Handle new message from client
             if (pfds[i].revents & POLLIN)
-                success = srv.handle_client_input(*client, fd);
+                success = srv.handle_client_input(srv, *client, fd);
             if (!success)
             {
                 Client::close_client(pfds, srv, i);
@@ -73,11 +73,12 @@ int main(int argc, char** argv)
             {
                 success = srv.handle_client_output(*client, fd);
             }
-            if (!success)
+            if (!success || client->toDisconnect)
             {
                 Client::close_client(pfds, srv, i);
                 continue;
             }
+            
             ++i;
         }
     }
@@ -87,6 +88,6 @@ int main(int argc, char** argv)
 }
 
 //TODO extra colon in some outputs (can't recreate??)
-//TODO Segfault on invite with this format: INVITE wouter #test1
+//TODO Segfault on invite with this format: INVITE wouter #test1 (can't recreate??)
 //TODO determine a way to quit elegently
 //TODO Ask Chatty to create an script for testing with two connections going back and forth

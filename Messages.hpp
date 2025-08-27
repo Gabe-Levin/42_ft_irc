@@ -28,6 +28,23 @@ inline void BROADCAST_TOPIC(Server& srv, Client& c, Channel& channel)
     channel.broadcast(msg);
 }
 
+inline void BROADCAST_QUIT(Server& srv, Client& c, const std::string& reason)
+{
+    std::string msg;
+    if(reason.empty())
+    {
+        msg = ":" + c.nick + "!" + c.user + "@" + srv._name +
+            " QUIT :Quit\r\n";
+    }
+    else
+        msg = ":" + c.nick + "!" + c.user + "@" + srv._name +
+            " QUIT :Quit: " + reason + "\r\n";
+    for (std::vector<Channel>::iterator it = srv.channels.begin(); it != srv.channels.end(); ++it)
+    {
+        if (it->is_on_client_list(c.nick))
+            it->broadcast_to_others(msg, c.nick);
+    }
+}
 inline void CHANNEL(Server& srv, Client& c, Channel& channel, std::string msg)
 {
     for(std::vector<Client*>::iterator it = channel.clients.begin(); it != channel.clients.end(); ++it)

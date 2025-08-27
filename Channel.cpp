@@ -105,6 +105,15 @@ void Channel::broadcast(std::string msg)
     }
 }
 
+void Channel::broadcast_to_others(std::string msg, std::string nick)
+{
+    for(std::vector<Client*>::iterator it = clients.begin(); it != clients.end(); ++it)
+    {
+        if((*it)->nick != nick)
+            (*it)->outbuf += msg;
+    }
+}
+
 bool Channel::is_on_invite_list(std::string nick)
 {
     for(std::vector<Client*>::iterator it = invite_list.begin(); it != invite_list.end(); ++it)

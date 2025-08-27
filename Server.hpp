@@ -46,7 +46,7 @@ struct Server
     void accept_new(std::vector<struct pollfd> &pfds, int listenfd);
     int setup_listen_socket(std::vector<struct pollfd> &pfds);
     void set_poll_policy(std::vector<struct pollfd> &pfds);
-    bool handle_client_input(Client &client, int &fd);
+    bool handle_client_input(Server &srv, Client &client, int &fd);
     bool handle_client_output(Client &client, int &fd);
     void clear_empty_channels();
 

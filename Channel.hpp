@@ -38,6 +38,7 @@ struct Channel
     bool kick_operator(std::string nick);
     Client* find_operator(std::string nick);
     void broadcast(std::string msg);
+    void broadcast_to_others(std::string msg, std::string nick);
 
     static Channel* find_channel(std::string channel, Server &srv);
 };
