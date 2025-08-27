@@ -86,13 +86,7 @@ int main(int argc, char** argv)
     return 0;
 }
 
-//TODO can join a channel multiple times
-//TODO cant kick
-//TODO PART would be nice
-//TODO extra colon in some outputs
-//TODO User name validation wrong
+//TODO extra colon in some outputs (can't recreate??)
 //TODO Segfault on invite with this format: INVITE wouter #test1
-//TODO check if this allocated memory clients.push_back(Client(cfd));
 //TODO determine a way to quit elegently
 //TODO Ask Chatty to create an script for testing with two connections going back and forth
-//TODO add unknown command error for trash CMD input

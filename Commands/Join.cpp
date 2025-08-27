@@ -54,11 +54,7 @@ void Client::do_join(std::istringstream &iss, Server &srv, Client &c)
     std::string remainder;
     iss >> channel_name;
     
-    if(!c.registered)
-    {
-        Msg::ERR_NOTREGISTERED(srv, c);
-        return;
-    }
+    
 
     if(channel_name.empty())
     {
@@ -88,6 +84,11 @@ void Client::do_join(std::istringstream &iss, Server &srv, Client &c)
         Msg::RPL_NOTOPIC(srv, c, *channel);
         Msg::RPL_NAMREPLY(srv, c, *channel);
         Msg::RPL_ENDOFNAMES(srv, c, *channel);
+        return;
+    }
+    if ((*channel).is_on_client_list(c.nick))
+    {
+        Msg::ERR_USERONCHANNEL(srv, c, *channel);
         return;
     }
 

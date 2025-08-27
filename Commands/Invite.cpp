@@ -37,14 +37,14 @@ void Client::do_invite(std::istringstream &iss, Server &srv, Client &c)
     }
 
     Channel *channel = (Channel::find_channel(channel_name, srv));
-    if(channel != NULL)
+    if(channel == NULL)
     {
         Msg::ERR_NOSUCHCHANNEL(srv, c, channel_name);
         return;
     }
 
     Client *invitee = srv.get_client(nick);
-    if (invitee != NULL)
+    if (invitee == NULL)
     {
         Msg::ERR_NOSUCHNICK(srv, c, nick);
         return;

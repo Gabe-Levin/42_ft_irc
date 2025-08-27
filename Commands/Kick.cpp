@@ -42,13 +42,11 @@ void Client::do_kick(std::istringstream &iss, Server &srv, Client &c)
         return;
     }
     
-    if((*channel).kick_client(nick))
-        Msg::ERR_USERNOTINCHANNEL(srv, c, *channel, nick);
-    else
-    {
-        while (iss.peek() == ' ' || iss.peek() == ':') iss.get();
-        std::getline(iss, reason);
-        Msg::KICK(srv, c, *channel, nick, reason);
-    }
+    while (iss.peek() == ' ' || iss.peek() == ':') iss.get();
+    std::getline(iss, reason);
+    Msg::KICK(srv, c, *channel, nick, reason);
+
+    (*channel).kick_client(nick);
+    srv.clear_empty_channels();
     return;
 }

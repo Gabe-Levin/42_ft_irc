@@ -7,6 +7,7 @@ SRCS = main.cpp Client.cpp Server.cpp Channel.cpp \
        Commands/Invite.cpp Commands/Join.cpp Commands/Kick.cpp \
        Commands/Mode.cpp Commands/Nick.cpp Commands/Pass.cpp \
        Commands/Privmsg.cpp Commands/Topic.cpp Commands/User.cpp \
+	   Commands/Part.cpp Commands/Names.cpp
 
 OBJS = $(SRCS:%.cpp=$(OBJDIR)/%.o)
 

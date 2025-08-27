@@ -84,6 +84,13 @@ void Client::do_nick(std::istringstream &iss, Server &srv, Client &c)
 {
     std::string nick;
     iss >> nick;
+    if(!c.password)
+    { 
+        Msg::ERR_PASSWDMISMATCH(srv, c);
+        c.toDisconnect = true;
+        return;
+    }
+
     if(nick.empty())
     {
       Msg::ERR_NONICKNAMEGIVEN(srv, c);
@@ -101,5 +108,6 @@ void Client::do_nick(std::istringstream &iss, Server &srv, Client &c)
     }
     
     c.nick = nick;
+    c.check_registration(srv);
     return;
 }

@@ -68,6 +68,7 @@ bool Channel::kick_client(std::string nick)
             return true;
         }
     }
+    
     return false;
 }
 
@@ -88,10 +89,6 @@ bool Channel::is_on_client_list(std::string nick)
 {
     for(std::vector<Client*>::iterator it = clients.begin(); it != clients.end(); ++it)
     {
-        std::cout << "nick inside on-client list" << std::endl;
-        std::cout << (*it)->nick << std::endl;
-        std::cout << nick << std::endl;
-
         if(nick == (*it)->nick)
         {
             return true;

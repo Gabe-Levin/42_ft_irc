@@ -153,9 +153,22 @@ std::string Server::get_server_name()
     return "host";
 }
 
+void Server::clear_empty_channels()
+{
+  for(std::vector<Channel>::iterator it = channels.begin(); it != channels.end(); it++)
+    {
+        if(it->clients.size() == 0)
+        {
+            channels.erase(it);
+            return;
+        }
+    }
+}
 
-// Complex methods
 
+/////////////////////
+// Complex methods //
+/////////////////////
 void  Server::set_poll_policy(std::vector<struct pollfd> &pfds)
 {
     for(size_t i = 0; i < pfds.size(); ++i)

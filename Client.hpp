@@ -49,6 +49,11 @@ struct Client
     void do_topic(std::istringstream &iss, Server &srv, Client &c);
     void do_privmsg(std::istringstream &iss, Server &srv, Client &c);
     void do_user(std::istringstream &iss, Server &srv, Client &c);
+    void do_part(std::istringstream &iss, Server &srv, Client &c);
+    void do_names(std::istringstream &iss, Server &srv, Client &c);
+
+    private:
+        bool check_registration(Server &srv);
 };
 
 #endif

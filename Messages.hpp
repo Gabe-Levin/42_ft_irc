@@ -43,7 +43,7 @@ inline void CHANNEL(Server& srv, Client& c, Channel& channel, std::string msg)
 inline void KICK(Server& srv, Client& c, Channel& channel, std::string target_nick, std::string reason)
 {
     std::string msg;
-    if(target_nick.empty())
+    if(reason.empty())
     {
         msg = ":" + c.nick + "!" + c.user + "@" + srv._name +
                 " KICK " + channel._name + " " + target_nick + "\r\n";
@@ -52,6 +52,14 @@ inline void KICK(Server& srv, Client& c, Channel& channel, std::string target_ni
         msg = ":" + c.nick + "!" + c.user + "@" + srv._name +
                 " KICK " + channel._name + " " + target_nick +
                           " :" + reason + "\r\n";
+    channel.broadcast(msg);
+}
+
+inline void PART(Server& srv, Client& c, Channel& channel)
+{
+    std::string msg;
+    msg = ":" + c.nick + "!" + c.user + "@" + srv._name +
+                      " PART " + channel._name + "\r\n";
     channel.broadcast(msg);
 }
 
@@ -235,6 +243,11 @@ inline void ERR_NOTONCHANNEL(Server& srv, Client& c, Channel& ch) {
 
 inline void ERR_USERONCHANNEL(Server& srv, Client& c, Channel& ch, const std::string& target_nick) {
     c.outbuf += RED + ":" + srv._name + " 443 " + c.nick + " " + target_nick + " " + ch._name +
+                 " :is already on channel" + RESET + "\r\n";
+}
+
+inline void ERR_USERONCHANNEL(Server& srv, Client& c, Channel& ch) {
+    c.outbuf += RED + ":" + srv._name + " 443 " + c.nick + " " + ch._name +
                  " :is already on channel" + RESET + "\r\n";
 }
 

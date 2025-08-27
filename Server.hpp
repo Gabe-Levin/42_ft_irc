@@ -48,6 +48,7 @@ struct Server
     void set_poll_policy(std::vector<struct pollfd> &pfds);
     bool handle_client_input(Client &client, int &fd);
     bool handle_client_output(Client &client, int &fd);
+    void clear_empty_channels();
 
     static int set_nonblocking(int fd);
     static bool is_valid_input(int argc, char** argv);
