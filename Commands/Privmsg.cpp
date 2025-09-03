@@ -1,22 +1,6 @@
 #include "../Client.hpp"
 #include "../Messages.hpp"
 
-/*
-    https://modern.ircdocs.horse/#privmsg-message
-
-ERROR                         | STATUS/DONE | DESCRIPTION
-ERR_NORECIPIENT (411)         | YES          | PRIVMSG without recipient
-ERR_NOTEXTTOSEND (412)        | YES          | PRIVMSG without message
-ERR_NOSUCHNICK (401)          | YES          | Target nickname does not exist
-ERR_NOSUCHCHANNEL (403)       | YES          | Target channel does not exist - !! Lea wasn"t going for this one
-ERR_CANNOTSENDTOCHAN (404)    | YES          | Cannot send to channel (e.g. moderated +m)
-
-
-	(??? Don't know if necessary (berni, 28.08.)
-	(Sourc: Lea)RPL_AWAY = 301 // not doing that one anymore, doesn't make sense, as we don't register users
-
-*/
-
 void Client::do_privmsg(std::istringstream &iss, Server &srv, Client &c)
 {
     std::string target;

@@ -1,16 +1,6 @@
 #include "../Client.hpp"
 #include "../Messages.hpp"
 
-/*
-ERROR                         | STATUS/DONE | DESCRIPTION
-ERR_NEEDMOREPARAMS (461)      | YES          | KICK without <channel> or <nick>
-ERR_NOSUCHCHANNEL (403)       | YES          | Channel does not exist
-ERR_NOTONCHANNEL (442)        | YES          | User is not on channel
-ERR_USERNOTINCHANNEL (441)    | YES          | Target user is not in channel
-ERR_CHANOPRIVSNEEDED (482)    | YES          | User is not channel operator
-
-*/
-
 void Client::do_kick(std::istringstream &iss, Server &srv, Client &c)
 {
     std::string channel_name, nick, reason;

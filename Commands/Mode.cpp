@@ -1,39 +1,6 @@
 #include "../Client.hpp"
 #include "../Messages.hpp"
 
-/*
-(SOURCE LEA)
-If <target> is a nickname that does not exist on the network,
-the ERR_NOSUCHNICK (401) numeric is returned. 
-If <target> is a different nick than the user who sent the command, 
-the ERR_USERSDONTMATCH (502) numeric is returned.
-If <modestring> is not given, the RPL_UMODEIS (221) numeric is sent back
-containing the current modes of the target user.
-If <modestring> is given, the supplied modes will be applied, and a MODE
-message will be sent to the user containing the changed modes. If one or more
-modes sent are not implemented on the server, the server MUST apply the modes
-that are implemented, and then send the ERR_UMODEUNKNOWNFLAG (501) in reply 
-along with the MODE message.
-option we are not implementing:
- o: Give/take channel operator privilege -can only be used on Channel
- i: Invisible User Mode
-
-Error Replies:
-							done?
-ERR_NOSUCHNICK (401)		=>	no
-ERR_UMODEUNKNOWNFLAG (501)	=>	no
-ERR_USERSDONTMATCH (502)	=>	no
-
-(CHATTY)
-ERROR                         | STATUS/DONE | DESCRIPTION
-ERR_NOSUCHCHANNEL (403)       | YES          | Channel does not exist
-ERR_NEEDMOREPARAMS (461)      | YES          | Missing arguments for mode (+k, +l, +o/-o)
-ERR_UNKNOWNMODE (472)         | YES          | Unknown channel mode flag
-ERR_CHANOPRIVSNEEDED (482)    | YES          | User is not channel operator
-ERR_USERNOTINCHANNEL (441)    | YES          | Target user for +o/-o not in channel
-
-*/
-
 void Client::do_mode(std::istringstream &iss, Server &srv, Client &c)
 {
     std::string channel_name, flag;

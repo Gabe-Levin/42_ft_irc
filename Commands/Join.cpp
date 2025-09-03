@@ -1,38 +1,6 @@
 #include "../Client.hpp"
 #include "../Messages.hpp"
 
-/*
-(SOURCE LEA)
-    https://modern.ircdocs.horse/#join-message
-									done?
-    ERR_NOTREGISTERED (451)		=>	YES
-	ERR_NEEDMOREPARAMS (461)	=>	no
-    ERR_NOSUCHCHANNEL (403) 	=>	no
-    ERR_TOOMANYCHANNELS (405)	=> (LEA: ) we ignore that...
-    ERR_BADCHANNELKEY (475)		=>	no
-    x ERR_BANNEDFROMCHAN (474)	=> (LEA: )we don't ban
-    ERR_CHANNELISFULL (471)		=> (LEA: )TODO: we ignore that... our limit is MAX_INT ? ==> nop
-    ERR_INVITEONLYCHAN (473)	=>	no
-    ERR_BADCHANMASK (476)		=>	(LEA: )???
-    RPL_TOPIC (332)				=>	no
-    RPL_TOPICWHOTIME (333)		=>	(LEA: )we don't do that (no history in our modest server)
-    RPL_NAMREPLY (353)			=>	no
-    RPL_ENDOFNAMES (366)		=>	no
-
-(SOURCE CHATTY)
-ERROR                         | STATUS/DONE | DESCRIPTION
-ERR_NEEDMOREPARAMS (461)      | YES          | JOIN without channel
-ERR_BADCHANMASK (476)         | YES          | Invalid channel name
-ERR_INVITEONLYCHAN (473)      | YES          | JOIN to +i channel without invite
-ERR_BADCHANNELKEY (475)       | YES          | JOIN with wrong key on +k channel
-ERR_CHANNELISFULL (471)       | YES          | JOIN when +l channel limit is reached
-
-RPL_TOPIC (332)               | YES         | If the channel has a topic set
-RPL_NOTOPIC (331)             | YES         | If no topic is set on the channel
-RPL_NAMREPLY (353)            | YES         | List of visible nicks in channel (@ prefix for ops)
-RPL_ENDOFNAMES (366)          | YES         | End of NAMES list marker
-*/
-
 bool isValidChannelName(const std::string& name) {
     if (name.empty())
         return false;

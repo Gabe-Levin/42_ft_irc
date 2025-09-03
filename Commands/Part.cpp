@@ -1,7 +1,6 @@
 #include "../Client.hpp"
 #include "../Messages.hpp"
 
-
 void Client::do_part(std::istringstream &iss, Server &srv, Client &c)
 {
     std::string channel_name;
