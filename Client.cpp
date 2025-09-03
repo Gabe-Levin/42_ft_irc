@@ -39,7 +39,7 @@ Client::Client(int f): fd(f) {};
 void Client::close_client(std::vector<struct pollfd>& pfds, Server &srv, size_t idx)
 {
     int fd = pfds[idx].fd;
-    // std::cout << "Closing client fd: " << fd << " at index: " << idx << std::endl;
+    std::cout << "Closing client fd: " << fd << " at index: " << idx << std::endl;
     Client *c = srv.get_client(fd);
     for(std::vector<Channel>::iterator it = srv.channels.begin(); it != srv.channels.end(); it++)
         it->kick_client(c->nick);
@@ -52,13 +52,35 @@ void Client::close_client(std::vector<struct pollfd>& pfds, Server &srv, size_t 
 
 bool Client::pop_line(std::string &buffer, std::string &line)
 {
-    std::string::size_type pos = buffer.find('\n');
+	//TODO END THIS DESASTER :)
+	// NEW VERSION -- DOESN'T WORK YET
+	// should go for both end-of-line-codes ("/r/n" & 'n'); the second version ('/n') is useful because nc sometimes sends just '\n'.
+	std::string::size_type pos = buffer.find("\r\n");
+	if (pos != std::string::npos)
+	{
+		line = buffer.substr(0, pos);
+		buffer.erase(0, pos + 2);
+		return true;
+	}
+
+	pos = buffer.find('\n');
+	if (pos != std::string::npos)
+	{
+		line = buffer.substr(0, pos);
+		buffer.erase(0, pos + 1);
+		return true;
+	}
+
+	return false;
+
+	//OLD VERSION
+    /*std::string::size_type pos = buffer.find('\n');
     if (pos == std::string::npos) return false;
     line = buffer.substr(0, pos);
     if(!line.empty() && line[line.size()-1]== '\r') // rm trailing \r
         line.erase(line.size()-1);
     buffer.erase(0, pos + 1);
-    return true;
+    return true;*/
 }
 
 bool Client::check_registration(Server &srv)
