@@ -213,8 +213,6 @@ inline void RPL_CHANNELMODEIS(Server& srv, Client& c, Channel& ch) {
     if(ch.max_clients > 0)
         flags += "l";
 
-    std::cout << "max_clients: " << ch.max_clients << std::endl;
-
     std::string params;
     if(!ch.secretpwd.empty())
         params += " key " + ch.secretpwd;

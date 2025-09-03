@@ -73,9 +73,7 @@ std::string Server::get_date_str() {
 
 int Server::set_nonblocking(int fd)
 {
-    int flags = fcntl(fd , F_GETFL, 0);
-    if(flags == -1) return -1;
-    if(fcntl(fd, F_SETFL, flags | O_NONBLOCK) == -1) return -1;
+    if(fcntl(fd, F_SETFL, O_NONBLOCK) == -1) return -1;
     return 0;
 }
 
@@ -213,7 +211,8 @@ void Server::accept_new(std::vector<struct pollfd> &pfds, int listenfd)
             int cfd = accept(listenfd, (struct sockaddr*)&ss, &slen);
             if(cfd < 0)
             {
-                if(errno == EAGAIN || errno == EWOULDBLOCK) break;
+                if(errno == EAGAIN || errno == EWOULDBLOCK)
+                    break;
                 std::cerr << "accept error: " << std::strerror(errno) << std::endl;
                 break;
             }
@@ -306,27 +305,32 @@ bool Server::handle_client_input(Server &srv, Client &client, int &fd)
             std::string line;
             while(Client::pop_line(client.inbuf, line))
             {
-                 if (line.size() > 510) // 510 + "\r\n" = 512
-                    {
-                        Msg::ERR_INPUTTOOLONG(srv, client);
-                        continue;
-                    }
+                if (line.size() > 510) // 510 + "\r\n" = 512
+                {
+                    Msg::ERR_INPUTTOOLONG(srv, client);
+                    continue;
+                }
                 Client::handle_cmd(client, line, *this);
             }
+
+            if (n < (ssize_t)sizeof(buf)) return true;
+            
+            continue;
         }
-        else if (n == 0)  // Peer closed. ie. nothing to read
+        if (n == 0)  // Peer closed. ie. nothing to read
         {
             Msg::BROADCAST_QUIT(srv, client, "");
             client.toDisconnect = true;
             return false;
         }
-        else
-        {
-            if (errno == EAGAIN || errno == EWOULDBLOCK) 
-                return true; // stop reading for now, keep the client
-            return false; // Fatal socket error
-        }
+        if (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR) 
+            return true;
+            
+        // Any other socket error is fatal
+
+        return false;
     }
+
 }
 
 bool Server::handle_client_output(Client &client, int &fd)

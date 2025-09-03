@@ -39,7 +39,7 @@ Client::Client(int f): fd(f) {};
 void Client::close_client(std::vector<struct pollfd>& pfds, Server &srv, size_t idx)
 {
     int fd = pfds[idx].fd;
-    std::cout << "Closing client fd: " << fd << " at index: " << idx << std::endl;
+    // std::cout << "Closing client fd: " << fd << " at index: " << idx << std::endl;
     Client *c = srv.get_client(fd);
     for(std::vector<Channel>::iterator it = srv.channels.begin(); it != srv.channels.end(); it++)
         it->kick_client(c->nick);

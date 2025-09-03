@@ -41,7 +41,8 @@ int main(int argc, char** argv)
         if(ready < 0)
         {
             if(errno == EINTR) continue;
-            std::cerr << "poll error: " << std::strerror(errno) << std::endl; 
+            std::cerr << "poll error: " << std::strerror(errno) << std::endl;
+            continue;
         }
 
         // Accept new clients (if requests waiting)
@@ -86,9 +87,3 @@ int main(int argc, char** argv)
     close(listenfd);
     return 0;
 }
-
-//TODO extra colon in some outputs (can't recreate??)
-//TODO Segfault on invite with this format: INVITE wouter #test1 (can't recreate??)
-//TODO Ask Chatty to create an script for testing with two connections going back and forth
-
-//TODO handle lists, PRIVMSG nick1,nick2,#chan :Hallo
