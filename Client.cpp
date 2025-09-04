@@ -33,7 +33,17 @@ Client& Client::operator=(const Client &other)
 
 Client::~Client() {};
 
-Client::Client(int f): fd(f) {};
+Client::Client(int f)
+: fd(f),
+  password(false),
+  registered(false),
+  toDisconnect(false),
+  inbuf(),
+  outbuf(),
+  nick(),
+  user(),
+  realname()
+{}
 
 
 void Client::close_client(std::vector<struct pollfd>& pfds, Server &srv, size_t idx)
@@ -54,7 +64,7 @@ bool Client::pop_line(std::string &buffer, std::string &line)
 {
 	//TODO END THIS DESASTER :)
 	// NEW VERSION -- DOESN'T WORK YET
-	// should go for both end-of-line-codes ("/r/n" & 'n'); the second version ('/n') is useful because nc sometimes sends just '\n'.
+	// should go for both end-of-line-codes ("\r\n" & '\n'); the second version ('\n') is useful because nc sometimes sends just '\n'.
 	std::string::size_type pos = buffer.find("\r\n");
 	if (pos != std::string::npos)
 	{

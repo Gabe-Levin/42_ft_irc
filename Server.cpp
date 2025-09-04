@@ -353,7 +353,3 @@ bool Server::handle_client_output(Client &client, int &fd)
     }
     return true;
 }
-
-//TODO: We do have some leaks (see vg.log): I think it's including uses of uninitialized values.
-// Reproduce with:
-//   valgrind --leak-check=full --track-fds=yes --log-file=vg.log ./ircserv 6668 test
