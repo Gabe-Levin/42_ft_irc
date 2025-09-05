@@ -4,10 +4,8 @@
 #include <iostream>
 #include <poll.h>
 #include <vector>
-#include <map>
 #include <unistd.h>
 #include <sys/socket.h>
-#include <sstream>
 #include <string>
 #include <cstdlib> 
 
@@ -52,7 +50,9 @@ struct Client
     void do_part(std::istringstream &iss, Server &srv, Client &c);
     void do_names(std::istringstream &iss, Server &srv, Client &c);
     void do_quit(std::istringstream &iss, Server &srv, Client &c);
-    
+    void do_list(std::istringstream &iss, Server &srv, Client &c);
+
+
     private:
         bool check_registration(Server &srv);
 };

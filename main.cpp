@@ -1,11 +1,9 @@
 #include <iostream>
 #include <poll.h>
 #include <vector>
-#include <map>
 #include <cerrno>
 #include <cstring>
 #include <unistd.h>
-#include <sstream>
 #include <sys/socket.h>
 #include <fcntl.h>
 #include <netdb.h>
@@ -14,24 +12,26 @@
 #include "Server.hpp"
 #include "Channel.hpp"
 
-
 int main(int argc, char** argv)
 {
     //Input validation
     if(!Server::is_valid_input(argc, argv))
-        return 1;
-
-    //Initialize server and pollfd
+    return 1;
+    
+    //Initialize server
     Server srv(argv[1], argv[2]);
-    std::vector<struct pollfd> pfds;
-
+    
+    //Setup Signal Handling
+    srv.setup_signal_handling();
+    
     // Setup listen socket
+    std::vector<struct pollfd> pfds;
     int listenfd = srv.setup_listen_socket(pfds);
     if(listenfd < 0) return -1;
     std::cout << "IRC server listening on port " << srv._port << " ...\n";
-
+    
     // Main server loop
-    while(true)
+    while(Server::run)
     {
         // Define the poll policy
         srv.set_poll_policy(pfds);
@@ -84,6 +84,6 @@ int main(int argc, char** argv)
         }
     }
 
-    close(listenfd);
+    srv.close_all(pfds, listenfd);
     return 0;
 }

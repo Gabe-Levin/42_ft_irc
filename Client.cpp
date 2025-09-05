@@ -3,6 +3,7 @@
 #include "Messages.hpp"
 #include <string>
 #include <cstdlib> 
+#include <sstream>
 
 // Canonical Form
 Client::Client(): fd(-1), password(false), registered(false), toDisconnect(false){};
@@ -49,10 +50,12 @@ Client::Client(int f)
 void Client::close_client(std::vector<struct pollfd>& pfds, Server &srv, size_t idx)
 {
     int fd = pfds[idx].fd;
-    std::cout << "Closing client fd: " << fd << " at index: " << idx << std::endl;
-    Client *c = srv.get_client(fd);
-    for(std::vector<Channel>::iterator it = srv.channels.begin(); it != srv.channels.end(); it++)
-        it->kick_client(c->nick);
+    // std::cout << "Closing client fd: " << fd << " at index: " << idx << std::endl;
+    if (Client *c = srv.get_client(fd))
+    {
+        for(std::vector<Channel>::iterator it = srv.channels.begin(); it != srv.channels.end(); it++)
+            it->kick_client(c->nick);
+    }
 
     close(fd);
     srv.rm_client(fd);
@@ -62,14 +65,13 @@ void Client::close_client(std::vector<struct pollfd>& pfds, Server &srv, size_t 
 
 bool Client::pop_line(std::string &buffer, std::string &line)
 {
-	//TODO END THIS DESASTER :)
-	// NEW VERSION -- DOESN'T WORK YET
-	// should go for both end-of-line-codes ("\r\n" & '\n'); the second version ('\n') is useful because nc sometimes sends just '\n'.
-	std::string::size_type pos = buffer.find("\r\n");
+    std::string::size_type pos = buffer.find("\r\n");
 	if (pos != std::string::npos)
 	{
 		line = buffer.substr(0, pos);
 		buffer.erase(0, pos + 2);
+        if (line.empty())
+            return false;
 		return true;
 	}
 
@@ -77,20 +79,15 @@ bool Client::pop_line(std::string &buffer, std::string &line)
 	if (pos != std::string::npos)
 	{
 		line = buffer.substr(0, pos);
+        if (!line.empty() && line[line.size()-1] == '\r') // handle stray '\r'
+            line.erase(line.size()-1);
 		buffer.erase(0, pos + 1);
+        if (line.empty())
+            return false;
 		return true;
 	}
 
 	return false;
-
-	//OLD VERSION
-    /*std::string::size_type pos = buffer.find('\n');
-    if (pos == std::string::npos) return false;
-    line = buffer.substr(0, pos);
-    if(!line.empty() && line[line.size()-1]== '\r') // rm trailing \r
-        line.erase(line.size()-1);
-    buffer.erase(0, pos + 1);
-    return true;*/
 }
 
 bool Client::check_registration(Server &srv)
@@ -141,6 +138,9 @@ void Client::handle_cmd(Client &c, const std::string &line, Server &srv)
         c.do_join(iss, srv, c);
     else if(cmd == "PRIVMSG")
         c.do_privmsg(iss, srv, c);
+    else if (cmd == "LIST")
+        c.do_list(iss, srv, c);
+    
 
     // Operator Cmds
     else if(cmd == "TOPIC")

@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 #include <set>
-#include <sstream>  // Add this include
+#include <sstream>
 #include "Server.hpp"
 #include "Client.hpp"
 #include "Channel.hpp"
@@ -225,6 +225,37 @@ inline void RPL_CHANNELMODEIS(Server& srv, Client& c, Channel& ch) {
 
     c.outbuf += ":" + srv._name + " 324 " + c.nick + " " + ch._name + " +" + flags + params + "\r\n";
 }
+
+// 321: RPL_LISTSTART  "<nick> Channel :Users  Name"
+inline void RPL_LISTSTART(Server& srv, Client& c) {
+    c.outbuf += GREEN + ":" + srv._name + " 321 " + c.nick +
+                " Channel :Users  Name" + RESET + "\r\n";
+}
+
+// 322: RPL_LIST  "<nick> <channel> <#visible> :<topic>"
+inline void RPL_LIST(Server& srv, Client& c,
+                     const std::string& chan,
+                     size_t users,
+                     const std::string& topic)
+{
+    std::ostringstream n; n << users; // C++98-friendly int→string
+    c.outbuf += GREEN + ":" + srv._name + " 322 " + c.nick + " " +
+                chan + " " + n.str() + " :" + topic + RESET + "\r\n";
+}
+
+// (optional convenience overload)
+inline void RPL_LIST(Server& srv, Client& c, const Channel& ch) {
+    std::ostringstream n; n << ch.clients.size();
+    c.outbuf += GREEN + ":" + srv._name + " 322 " + c.nick + " " +
+                ch._name + " " + n.str() + " :" + ch.topic + RESET + "\r\n";
+}
+
+// 323: RPL_LISTEND  "<nick> :End of LIST"
+inline void RPL_LISTEND(Server& srv, Client& c) {
+    c.outbuf += GREEN + ":" + srv._name + " 323 " + c.nick +
+                " :End of LIST" + RESET + "\r\n";
+}
+
 
 // ------------------ ERRORS (401,403,404,409,411,412,417, 421,431,432,433,436,442,443,451,461,462,464,471..476,481,482,501,502) ------------------
 

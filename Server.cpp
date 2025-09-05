@@ -2,7 +2,6 @@
 #include "Server.hpp"
 #include "Messages.hpp"
 
-
 // Canonical Form
 Server::Server(const char* port, const char *password)
 {
@@ -168,6 +167,40 @@ void Server::clear_empty_channels()
 /////////////////////
 // Complex methods //
 /////////////////////
+
+//Signals
+volatile sig_atomic_t Server::run = 1;
+
+void Server::on_signal(int) {
+    Server::run = 0;
+}
+
+void Server::setup_signal_handling() {
+    struct sigaction sa;
+    memset(&sa, 0, sizeof(sa));
+    sa.sa_handler = Server::on_signal;
+    sigemptyset(&sa.sa_mask);
+    sigaction(SIGINT,  &sa, 0);
+    sigaction(SIGTERM, &sa, 0);
+    signal(SIGPIPE, SIG_IGN);
+}
+
+void Server::close_all(std::vector<struct pollfd>& pfds, int listenfd) {
+
+    for(size_t i = 0; i < pfds.size();)
+    {
+        if(pfds[i].fd == listenfd)
+        {
+            ++i;
+            continue;
+        }
+        Client::close_client(pfds, *this, i);
+    }
+
+    if (listenfd >= 0) close(listenfd);
+}
+
+//Poll Policy
 void  Server::set_poll_policy(std::vector<struct pollfd> &pfds)
 {
     for(size_t i = 0; i < pfds.size(); ++i)
@@ -230,9 +263,6 @@ void Server::accept_new(std::vector<struct pollfd> &pfds, int listenfd)
             pfds.push_back(p);
             
             clients.push_back(Client(cfd));
-            Client *c = get_client(cfd);
-            
-            (*c).outbuf += "Welcome to the server. Please register your PASS, NICK, and USER\r\n";
         }
     }
     

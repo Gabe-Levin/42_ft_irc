@@ -3,7 +3,6 @@
 
 #include <iostream>
 #include <vector>
-#include <map>
 #include <list>
 #include <cerrno>
 #include <cstring>
@@ -11,7 +10,7 @@
 #include <sys/socket.h>
 #include <fcntl.h>
 #include <netdb.h>
-#include <memory>
+#include <signal.h>
 
 #include "Client.hpp"
 #include "Channel.hpp"
@@ -21,6 +20,7 @@ struct Client;
 
 struct Server
 {
+    static volatile sig_atomic_t run;
     std::string _name;
     const char* _port;
     const char* _password;
@@ -49,13 +49,17 @@ struct Server
     bool handle_client_input(Server &srv, Client &client, int &fd);
     bool handle_client_output(Client &client, int &fd);
     void clear_empty_channels();
+    void close_all(std::vector<struct pollfd>& pfds, int listenfd);
 
     static int set_nonblocking(int fd);
     static bool is_valid_input(int argc, char** argv);
 
+    static void setup_signal_handling();
+
     private:
         std::string get_server_name();
         int create_listen_socket();
+        static void on_signal(int);
 
 };
 
